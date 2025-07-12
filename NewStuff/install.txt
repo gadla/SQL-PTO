@@ -1,0 +1,22 @@
+﻿Prerequisites for SQL PTO
+
+1. Office
+2. SQL Server installation
+3. .Net 3.5 enabled on the operating system
+4. Run Tools\Tools\SQLAnalyzer\PreReqs\SQLSysClrTypes(x64).msi
+5. Run Tools\Tools\SQLAnalyzer\PreReqs\MSChart.exe
+6. Run Tools\Tools\SQLAnalyzer\PreReqs\ReportViewer.msi
+7. Run Tools\Tools\SQLAnalyzer\PreReqs\RMLSetup_AMD64.msi
+8. Extract Tools\Tools\SQLAnalyzer\PreReqs\SQLNexusInternal.zip to c:\SQLNexus
+9. Extract Tools\Tools\SQLAnalyzer\SQL Analyzer Module\SQLAnalyzer.zip to c:\SQLAnalyzer
+10. Execute the PowerShell script file from c:\SQLAnalyzer\Utilities\1_UnblockinternetFiles.ps1 (Needs work)
+10. Modified Run the powershell script Tools\Tools\NewStuff\Unblock-FilesInFolder.ps1 -FolderPath 'C:\SQLAnalyzer'
+11. Execute the PowerShell script file from c:\SQLAnalyzer\Utilities\Register-SQLAnalyzerMenu.ps1 -verbose
+Note: if you wish to unregister run the UnRegister-SQLAnalyzerMenu.ps1 script
+12. Open the file c:\SQLAnalyzer\SQLAnalyzerConfig.xml
+verify that under the node <SQLNexusPath> is set to c:\SQLNexus\Internal
+The <ExportFolder> node is the folder that the reports will output to
+13. Fire up c:\SqlNexus\Internal\sqlnexus.exe, goto IMPORT on the buttom left (Add a screenshot here), goto options then select Importers
+Validate that all three importers are enabled (add screenshot)
+Select "Drop Current DB Before Importing" and then select "Save My Options"
+14. 
