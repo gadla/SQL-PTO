@@ -1,0 +1,1 @@
+powershell "get-wmiobject win32_diskpartition | select systemname, name, index, blocksize, startingoffset |ft"

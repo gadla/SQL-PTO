@@ -1,0 +1,52 @@
+<?xml version="1.0" standalone="yes"?>
+<CustomTasks>
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="Backups.sql" type="TSQL_Script" point="Startup" wait="No" cmd="Backups.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="Databases.sql" type="TSQL_Script" point="Startup" wait="No" cmd="Databases.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="DBCCMemoryStatus.sql" type="TSQL_Script" point="Startup" wait="No" cmd="DBCCMemoryStatus.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="DBFileSizes.sql" type="TSQL_Script" point="Startup" wait="No" cmd="DBFileSizes.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="ExpensiveProcedures.sql" type="TSQL_Script" point="Startup" wait="No" cmd="ExpensiveProcedures.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="ExpensiveQueries.sql" type="TSQL_Script" point="Startup" wait="No" cmd="ExpensiveQueries.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="GetStats.sql" type="TSQL_Script" point="Startup" wait="No" cmd="GetStats.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="IndexDetail.sql" type="TSQL_Script" point="Startup" wait="No" cmd="IndexDetail.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="IndexesAll.sql" type="TSQL_Script" point="Startup" wait="No" cmd="IndexesAll.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="IndexOperations.sql" type="TSQL_Script" point="Startup" wait="No" cmd="IndexOperations.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="LastCheckDBDate.sql" type="TSQL_Script" point="Startup" wait="No" cmd="LastCheckDBDate.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="LatchWaits.sql" type="TSQL_Script" point="Startup" wait="No" cmd="LatchWaits.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="LogInfo.sql" type="TSQL_Script" point="Startup" wait="No" cmd="LogInfo.sql" pollinginterval="0" />
+  <CustomTask enabled="false" groupname="_MyCollectors" taskname="MemoryAlloations.sql" type="TSQL_Script" point="Startup" wait="No" cmd="MemoryAlloations.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="MemoryClerks.sql" type="TSQL_Script" point="Startup" wait="No" cmd="MemoryClerks.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="MissingIndexes.sql" type="TSQL_Script" point="Startup" wait="No" cmd="MissingIndexes.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="OptimizerInfo.sql" type="TSQL_Script" point="Startup" wait="No" cmd="OptimizerInfo.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="OSInfo.sql" type="TSQL_Script" point="Startup" wait="No" cmd="OSInfo.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="Permissions.sql" type="TSQL_Script" point="Startup" wait="No" cmd="Permissions.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="RingBufferResourceMonitor.sql" type="TSQL_Script" point="Startup" wait="No" cmd="RingBufferResourceMonitor.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="SpinlockStats.sql" type="TSQL_Script" point="Startup" wait="No" cmd="SpinlockStats.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="SuspectPages.sql" type="TSQL_Script" point="Startup" wait="No" cmd="SuspectPages.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="SystemHealthErrors.sql" type="TSQL_Script" point="Startup" wait="No" cmd="SystemHealthErrors.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="TableAllocations.sql" type="TSQL_Script" point="Startup" wait="No" cmd="TableAllocations.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="TempDBInternalObjects.sql" type="TSQL_Script" point="Startup" wait="No" cmd="TempDBInternalObjects.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="TempDBUsage.sql" type="TSQL_Script" point="Startup" wait="No" cmd="TempDBUsage.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="UnusedIndexes.sql" type="TSQL_Script" point="Startup" wait="No" cmd="UnusedIndexes.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="Waiting.sql" type="TSQL_Script" point="Startup" wait="No" cmd="Waiting.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="WaitingTasks.sql" type="TSQL_Script" point="Startup" wait="No" cmd="WaitingTasks.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="Configuration.sql" type="TSQL_Script" point="Startup" wait="No" cmd="Configuration.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="RingBufferExceptionMonitor.sql" type="TSQL_Script" point="Startup" wait="No" cmd="RingBufferExceptionMonitor.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="RingBufferSchedulerMonitor.sql" type="TSQL_Script" point="Startup" wait="No" cmd="RingBufferSchedulerMonitor.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="BPCheck_PTOClinic.sql" type="TSQL_Script" point="Startup" wait="No" cmd="BPCheck_PTOClinic.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="MemoryGrants.sql" type="TSQL_Script" point="Startup" wait="No" cmd="MemoryGrants.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="Partitions.cmd" type="Utility" point="Startup" wait="No" cmd="Partitions.cmd &gt; &quot;%output_name%.OUT&quot;" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="AvailableRAM.sql" type="TSQL_Script" point="Startup" wait="No" cmd="AvailableRAM.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="Oom.sql" type="TSQL_Script" point="Startup" wait="No" cmd="Oom.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="UserObjectInMaster.sql" type="TSQL_Script" point="Startup" wait="No" cmd="UserObjectInMaster.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="LinkedServers.sql" type="TSQL_Script" point="Startup" wait="No" cmd="LinkedServers.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="GetSystemHealth" type="Utility" point="Startup" wait="No" cmd="GrabXEEventFiles.cmd %output_path% GetSystemHealthPath.sql %server_instance%" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="GetDefaultTrace" type="Utility" point="Startup" wait="No" cmd="GrabXEEventFiles.cmd %output_path% DefaultTracePath.sql %server_instance%" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="LogInfo2012.sql" type="TSQL_Script" point="Startup" wait="No" cmd="LogInfo2012.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="RGInformation.sql" type="TSQL_Script" point="Startup" wait="No" cmd="RGInformation.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="PendingIOs.sql" type="TSQL_Script" point="Startup" wait="No" cmd="PendingIOs.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="DriveDiskSpace.sql" type="TSQL_Script" point="Startup" wait="No" cmd="DriveDiskSpace.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="DeprecatedFeatures.sql" type="TSQL_Script" point="Startup" wait="No" cmd="DeprecatedFeatures.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="AllObjects.sql" type="TSQL_Script" point="Startup" wait="No" cmd="AllObjects.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="Triggers.sql" type="TSQL_Script" point="Startup" wait="No" cmd="Triggers.sql" pollinginterval="0" />
+  <CustomTask enabled="true" groupname="_MyCollectors" taskname="CompressionDetails.sql" type="TSQL_Script" point="Startup" wait="No" cmd="CompressionDetails.sql" pollinginterval="0" />
+</CustomTasks>

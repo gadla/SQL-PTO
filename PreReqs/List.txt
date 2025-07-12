@@ -1,0 +1,15 @@
+MS Chart Controls (used to create graphs)  --also requires .net framework 3.5
+https://www.microsoft.com/en-us/download/details.aspx?id=14422
+
+CLR Types
+https://www.microsoft.com/en-us/download/confirmation.aspx?id=29065  --page w/ link to all feature pack downloads
+http://go.microsoft.com/fwlink/?LinkID=239644&clcid=0x409   --x64 version of CLR types from above link
+
+RML Utilities
+https://www.microsoft.com/en-us/download/details.aspx?id=4511
+
+Report Viewer Controls
+https://www.microsoft.com/en-us/download/details.aspx?id=35747
+
+SQL Nexus (Internal Version)
+https://microsoft.sharepoint.com/teams/bidpwiki/Pages1/SQLNexus.aspx

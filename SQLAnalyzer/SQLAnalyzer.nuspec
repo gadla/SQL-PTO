@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>SQLAnalyzer</id>
+    <version>0.9.22</version>
+    <authors>Tim Chapman</authors>
+    <owners>Tim Chapman</owners>
+    <licenseUrl>https://license.url.goes.here</licenseUrl>
+    <projectUrl>https://services.premier.microsoft.com/</projectUrl>
+    <iconUrl>https://icon.url.goes.here</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>SQLAnalyzer PowerShell Module</description>
+    <releaseNotes>Version 0.9.22 was modified by timchap on 12/05/20</releaseNotes>
+    <copyright>Copyright 2019</copyright>
+    <tags>SQL POT Analyzer Workshop PFE Premier</tags>
+    <dependencies>
+    </dependencies>
+  </metadata>
+</package>

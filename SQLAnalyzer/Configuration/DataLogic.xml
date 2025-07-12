@@ -1,0 +1,1375 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <Counters>
+    <CalculatedCounters>
+      <Counter>
+        <CounterName Enabled="false" Graph="true" Type="Calculation">SQL Server CPU Use Percentage</CounterName>
+        <Description>%Privileged Time is the percentage of elapsed time that the process threads spent executing code in privileged mode. When a Windows system service is called, the servicewill often run in privileged mode to gain access to system-private data. Such data is protected from access by threads executing in user mode. Calls to the system canbe explicit or implicit, such as page faults or interrupts. Unlike some early operating systems, Windows uses process boundaries for subsystem protection in addition tothe traditional protection of user and privileged modes. Some work done by Windows on behalf of the application might appear in other subsystem processes in addition tothe privileged time in the process. Privileged or kernel mode is the processing mode that allows code to have direct access to all hardware and memory in the system. I/O operations and other system services run in privileged (kernel) mode; user applications run in user mode. Unless the processes are graphics-intensive or I/O-intensivesuch as file and print services, most applications should not be processing much work in kernel mode. Privileged mode corresponds to the percentage of time theprocessor spends on execution of Microsoft Windows kernel commands, such as processing of SQL Server I/O requests. If this counter is consistently high when thePhysical Disk counters are high, consider focusing on improving the disk subsystem. It is recommended to look for comparitive trends with other processes, work loads,error counts, and other behaviors to find what is driving Privileged Time. Note: Different disk controllers and drivers use different amounts of kernel processing time.Efficient controllers and drivers use less privileged time, leaving more processing time available for user applications, increasing overall throughput. Threshold:Yellow: SQL Server is using more than 20% Privileged (kernel) mode CPU usage Red: SQL Server is using more than 30% Privileged (kernel) mode CPU usage Next Steps: Thekey piece to diagnosing high processor conditions is to determine the ratio of privileged mode to user mode CPU. The counter '\Processor\% Processor Time' is the sum of'\Processor\% Privileged Time' and '\Processor\% User Time'. If Privileged Time is pushing the %Processor Time higher then it is due to processes executing in kernelmode. If '% User Time' is causing the % Processor Time to be higher then it is likely a user mode process that is causing the pressure. If %Privileged Time isconsistently high or shows high under load, it could be several issues. The most common reason for high %Privileged Time is disk pressure which can be measured bycorrelating this counter with Physical Disk reads / sec and Physical Disk writes / sec. If these are also high you may also see a high number of Page Latch Waits forSQL Server which can be measured by examining the sys.dm_os_wait_stats dynamic management view and the perfmon SQL Server:Wait Statistics perfmon counters.If SQL ServerMemory Manager: Page Life Expectancy is also low try to address by reducing the number of queries that are performing a high number of logical reads by adding indexes,ensuring that statistics are up to date, and potentially rewriting the query.You could add more physical RAM to help raise Page Life Expectancy if it is low (lower thanyour baseline, or critical when under 300) although we only recommend adding memory as an absolute last resort. We first recommended addressing design and addressingpoor indexing first. Adding physical RAM only masks the real issue.The other potential reasons for high privileged mode are related to out of date drivers, BIO beingout of date, failing components, processes that run in kernel mode such as anti-virus, and other potential issues. Reference: Monitoring CPU Usage http://msdn.microsoft.com/en-us/library/ms178072.aspxAsk the Performance Teamhttp://blogs.technet.com/askperf/archive/2008/01/18/do-you-know-where-your-processor-spends-its-time.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Calculation">:Recompiles to :SQL Statistics\Batch Requests/sec</CounterName>
+        <Description>Plan re-use is desirable for OLTP workloads because re-creating the same plan (for similar or identical transactions) is a waste of CPU resources. To compute the plan re-use rate, compare SQL Server SQL Statistics: batch requests/sec to SQL compilations/sec. Special exception to the plan re-use rule is that zero (or trivial) cost plans will not be cached (not re-used) in SQL 2005 SP2 and above. Applications that use zero cost plans will have a lower plan re-use but this is not a performance issue, because it is cheaper to generate a new plan every time than to cache.Reference:Execution Plan Caching and Reusehttp://msdn.microsoft.com/en-us/library/ms181055.aspxTop SQL Server 2005 Performance Issues for OLTP Applicationshttp://technet.microsoft.com/en-us/library/cc966401.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Type="Calculation" minWarning="50" maxWarning="100" minCritical="100" maxCritical="150">Page Lookups to Batch Requests Ratio Percentage</CounterName>
+        <Calculation>
+          <Numerator>:Buffer Manager\Page lookups/sec</Numerator>
+          <Denominator>:SQL Statistics\Batch Requests/sec</Denominator>
+        </Calculation>
+        <Description>The number of page lookups (logical reads) to batch reqeusts occuring on the system.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Calculation">:Forwarded Records to Batch Requests Ratio Percentage</CounterName>
+        <Description>Rows with varchar columns on tables without a clustered index can experience expansion when varchar values are updated with a longer string. In the case where the row cannot fit in the existing page, the row migrates and access to the row will traverse a pointer. Forwarded records occur when a data record in a heap increases in size and the record's current page does not have the space to store the size increase. The record is moved to a new location, becoming a forwarded record, and the forwarding record is left in the original location to point to the real location of the record. The forwarded record points back to the forwarding record in case its location ever needs to change again. Access Methods Forwarded Records/sec measures the number of records accessed through forwarded record pointers which are due to tables without a clustered index. A forwarded record is basically a pointer. For instance, if you start with a short row, and update the row creating a wider row, the row might not fit on the data page. A pointer is put in its location and the row is forwarded to another page. Forwarding Records are used as a performanceoptimization so that all the non-clustered indexes on the heap do not have to be altered with the new location of the heap record. If a table has lots of forwarded records, scanning the table can be very inefficient. Also, rows with varchar columns can experience expansion when varchar values are updated with a longer string. In the case where the row cannot fit in the existing page, the row migrates and access to the row will traverse a pointer.Forwarded Records only occurs on heaps which are tables without clustered indexes. Threshold: (Yellow) - This value should not be greater than 10% of the number ofBatch Requests/SecNext Steps:Look at code to determine where the short row is inserted followed by an update. Forwarded records can be avoided by:**Evaluate clustered indexes for heap tables.**Using default values so that an update does not result in a longer row that is the root cause of forwarded records.**Using Char instead of Varchar. Using Char creates a fixed length so that an update does not result in a longer row.**In cases where clustered indexes cannot be used, drop non-clustered indexes, build a clustered index to reorganize pages and rows, drop the clusteredindex, and then recreate non-clustered indexes.**Learn to use the sys.dm_db_index_physical_stats dynamic management view (DMV) to find forwarded records. In the sys.dm_db_index_physical_stats DMVthere is a column used called the forwarded_record_count which counts the number of records in a heap that have forward pointers to another datalocation. (This state occurs during an update, when there is not enough room to store the new row in the original location.)Reference:SQL Server Storage Enginehttp://blogs.msdn.com/sqlserverstorageengine/archive/2006/09/19/761437.aspxForwarding and forwarded records, and the back-pointer sizehttp://www.sqlskills.com/BLOGS/PAUL/post/Forwarding-and-forwarded-records-and-the-back-pointer-size.aspxsys.dm_db_index_physical_stats (Transact-SQL)http://msdn.microsoft.com/en-us/library/ms188917.aspxSQL Server, Access Methods Objecthttp://msdn.microsoft.com/en-us/library/ms177426.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Calculation">:FreeSpace Scans to Batch Requests Ratio Percentage</CounterName>
+        <Description>This counter represents inserts into a table with no physical ordering of the rows. A table with no ordering, without a clustered index, is known as a heaptable. Inserts into heaps will require SQL Server to perform freespace scans to identify pages with free space to insert rows. A heap table also requires an additional, internal column called an uniquifier to be generated for each row inserted. Extra processing is required to define and store a heap table since SQL Server normally uses the clustered index as a storage mechanism for the table data. Freespace scans have an additional I/O expense for inserts and can possibly causecontention on the GAM, SGAM, and PFS pages when there are many connections inserting. It is usually recommended that you physically order the table rows by using a clustered indexon the table.FreeSpace Scans/sec represents inserts into a table with no physical ordering of its rows which is called a heap. A heap table requires an additional column called anuniquifier to be generated for each row inserted. It is recommended that you physically order the table rows by using a clustered on the table for most tables.***Also, a heap table requires an additional column called an uniquifier to be generated for each row inserted. It is usually recommended that you physically order thetable rows by using a clustered on the table for most tables.FreeSpace Scans/sec measures the number of scans per second that were initiated to search for free space within pages already allocated to an allocation unit to insert or modify record fragments. Each scan may find multiple pages. FreeSpace Scans are due to inserts into heaps that require SQL Server to perform freespace scans to identify pages with free space to insert rows. Freespace scans are an additional I/O expense for inserts and can possibly cause contention on the GAM, SGAM, and PFS pages when many spids are inserting. The solution is often to add a clustered index for base tables. One or more of the following symptoms may accompany poor performance during inserts to a large table on SQL Server:**Unexplained high CPU usage by SQL Server, sometimes up to 100%.**SQL Profiler or SHOWPLAN indicates that singleton inserts have wide variations in performance.**The number of reads is out of proportion to the number or size of the indexes and triggers on the table.**Sporadic timeouts.**The FreeSpace Scans/Sec counter from the SQL Server:Access Methods object in Performance Monitor is excessively high given all the factors involvedin your specific environment.A common cause for these symptoms is that inserts to a heap (a table without a clustered index) are often slower than inserts to a table with a clusteredindex (a clustered table).Threshold:Yellow: A ratio (10%) or more than 1 freespace scan for every 10 Batch Requests/SecNext Steps:Microsoft recommends that you add a clustered index to the table and test the effect of the clustered index on performance.Reference:PRB: Poor Performance on a Heaphttp://support.microsoft.com/kb/297861SQL Server, Access Methods Objecthttp://msdn.microsoft.com/en-us/library/ms177426.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Calculation">Full Scans to Index Searches Ratio</CounterName>
+        <Description>This counter monitors the number of full scans on base tables or indexes. High values indicate that we may be having performance issues due to table / index page scans. If we see high CPU and / or drops in Page Life Expectancy (PLE) then we need to investigate this counter; however, if full scans are on small tables we can safely ignore this counter as this counter tracks all full table scans, not just those on large tables. A few of the main causes of high Full Scans/sec are missing indexes, too many rows requested, queries with missing indexes, or too many rows requested will have a large number of logical reads and an increased CPU time.This analysis throws a Warning alert if the ratio of Index Searches/sec to Full Scans/sec is less than 1000 to 1 and if there are more than 1000 Index Searches/sec.Note: This counter monitors the number of full scans on tables or indexes. This counter can be ignored unless there is also poor disk performance,and / or, high CPU use along with high scan rates. High scan rates may be caused by missing indexes, very small tables, or requests for too many records.Next Steps:The main causes of high Full Scans/sec are:**Missing indexes**Too many rows requested queries with missing indexes or too many rows requested will have a large number of logical reads (disk impact) and an increased CPU time. As mentioned, if there is a high level of Full Scans to Index Searches, then it is important to also check the following:See PERFMON SQLServer:Buffer Manager performance counters for memory pressure:**Page Life Expectancy**Checkpoint pages/sec**Lazy writes/secA high number of scans can cause buffer pool pressure (as indicated with low PLE and a higher Lazy Writes / sec count).Memory pressure will quickly manifest into disk pressure, so also check:See PERFMON Physical Disk performance counters:**Disk sec/read**Disk sec/writeNote: Identify disk bottlenecks by using Performance Counters, Profiler, sys.dm_io_virtual_file_stats and SHOWPLAN output.Also refer to the sys.dm_io_virtual_file_stats dynamic management view (DMV) to track io_stalls to help identify IO bottlenecks.To back up and support this information, compare the counters to sys.dm_o_wait_stats output. If you see high values in perfmon, you may also see highwaits for the following:**ASYNC_IO_COMPLETION**IO_COMPLETION**PAGEIOLATCH_* (Data page I/O completion waits appear as PAGEIOLATCH_* waits)Reactively, SQL Profiler can be used to identify which SQL statements are causing scans. Use the scans event class and events scan:started and scan:completed. Include the object ID data column. Save the profiler trace to a file and then convert it to trace table. You can then search for the scans event. The scan:completed event provides the associated IO so that you can also search for high reads, writes, and duration.Reference:SQL Server, Access Methods Objecthttp://msdn.microsoft.com/en-us/library/ms177426.aspxSQL Server 2005 Waits and Queueshttp://download.microsoft.com/download/4/7/a/47a548b9-249e-484c-abd7-29f31282b04d/Performance_Tuning_Waits_Queues.docWait Types and Correlation to Other Performance Infohttp://www.sqlmag.com/Files/09/40925/Webtable_01.doc</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Calculation">Page Splits to Batch Requests Ratio Percentage</CounterName>
+        <Calculation>
+          <Numerator>:Access Methods\Page Splits/sec</Numerator>
+          <Denominator>:SQL Statistics\Batch Requests/sec</Denominator>
+        </Calculation>
+        <Description>The number of page splits per second that occurs as the result of overflowing index pages and new page allocations. When a record is inserted into an ndex, it must be inserted in order. If the data page is full, the page splits in order to maintain the appropriate order. A high value for this counter may warrant the consideration of a lower fill factor and pad_index to leave more empty space per page. This value should be as low as possible. Heavily fragmented indexes may be the result of high page splits/sec.Note: A high value for this counter is not bad in situations where many new pages are being created, since it includes all new page allocations as well as splits when a data page spilts.Threshold:Yellow: A ratio of more than 1 page split for every 20 batch requestsNext Steps:If the number of page splits is high, consider increasing the fillfactor of your indexes. An increased fillfactor helps to reduce page splits byincreasing the amount of free space on each page.Reference:SQL Server, Access Methods Objecthttp://msdn.microsoft.com/en-us/library/ms177426(v=SQL.105).aspxTo track page splits more accurately see the following SQLSkills blog article from Jonathan Kehayias:http://www.sqlskills.com/blogs/jonathan/post/Tracking-Problematic-Pages-Splits-in-SQL-Server-2012-Extended-Events-e28093-No-Really-This-Time!.aspx</Description>
+      </Counter>
+    </CalculatedCounters>
+    <SQLInstanceCounters>
+
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Access Methods\Scan Point Revalidations/sec</CounterName>
+        <Description>Scan Point Revalidations occurs during range scans. When a range scan occurs there is an optimization process that occurs where the pages are marked as satisfied with the WHERE predicate that does the range scan. Instead of scanning through each and every row in the page, it does not keep an exclusive lock on those pages; instead it just keeps a mark on it and continues with rest of the scan. If one or more rows in the page are modified by update or a delete operation, the update or delete process will notify the scan to recheck the page to see if the page is still valid for the range scan. This recheck is called a Scan Point Revalidation.Scan Point Revalidations shows the contention between range scans and modifications to the same pages. This counter also pinpoints hotspots within the cluster table competing between reads and writes. Scan Point Revalidations are the number of times per second that the scan point had to be revalidated before the scan could be continued. If a page latch has to be released due to contention, the scan point must be revalidated when the scan resumes.Note: This is an informative counter. It is not a critical counter that should be used for baselines or alerting. Next Steps: You can correlate the Scan Count Revalidations/sec with the Range Scans/sec counter and Page Latch related counters. The higher the number of range scans on the same pages, the higher the number of scan point revalidations. High number of Scan Point Revalidations/sec potentially indicate hot spots in the data, probably due to a poor choice of clustered index putting the most active rows on the same page.Consider reducing the number of range scans, isolating reporting and application use, and most importantly ensuring that the clustered index choice is the right one. Clustered indexes should be on columns that are sorted on, grouped on, used in joins, used in between queries, and in other operations where the order of the returned data is critical.Reference:SQL Server, Access Methods Objecthttp://msdn.microsoft.com/en-us/library/ms177426.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Access Methods\Workfiles Created/sec</CounterName>
+        <Description>Number of Workfiles created in the last second. Workfiles in TempDB are used in processing hash operations when the amount of data being processed is too big to fit into the available memory. The Work files are similar to work tables but are created strictly by hashing operations. Workfiles are used tostore temporary results for hash joins and hash aggregates. Hash joins can require large amounts of memory for execution. As part of executing a hash join, the memory required for the hash can become too large and require a spill to disk. The disk storage to backup the hash operation is called a workfile. Workfiles are collections of extents and pages that are managed strictly by the workfile code.Threshold:Yellow: Greater than 20 Workfiles created per secondNext Steps:Make queries more efficient by adding/changing indexes. Run expensive queries through the Database Tuning Advisor (DTA), look for expensive queries andconsider rewriting them, and add as last resort consider adding additional memory.Reference:SQL Server, Access Methods Objecthttp://technet.microsoft.com/en-us/library/ms177426.aspxWorking with tempdb in SQL Server 2005http://msdn.microsoft.com/en-us/library/cc966545.aspxTroubleshooting Performance Problems in SQL Server 2008http://download.microsoft.com/download/D/B/D/DBDE7972-1EB9-470A-BA18-58849DB3EB3B/TShootPerfProbs2008.docx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Access Methods\Worktables Created/sec</CounterName>
+        <Description>Number of worktables created in the last second. The number of work tables created per second. Work tables are temporary objects and are used to store results for query spool, LOB variables, and cursors.Threshold:Yellow: Greater than 20 Worktables created per second. This will need to be baselined for accuracy.Next Steps: Look for expensive statements with high CPU, duration, and statements that run in parallel and tune them by adding indexes, reducing the volume of data being returned, and adding indexes where appropriate. Ensure that TempDB is not a bottleneck and is following best practices. If you determine that the throughput of your application has degraded because of contention in allocation structures, you can use the following techniques to minimize it. Evaluate your application and the query plans to see if you can minimize the creation of work tables and temporary tables. Monitor the perfmon counters as described in Monitoring contention caused by DML operations. Then, use SQL Profiler to correlate the values of these counters with the currently running queries. This helps you identify the queries that are causing the contention in allocation structures. Divide TempDB into multiple data files of equal size. These multiple files don't necessarily need to be on different disks/spindles unless you are also encountering I/O bottlenecks as well. The general recommendation is to have one file per CPU because only one thread is active per CPU at one time. SQL Server allocates pages for TempDB objects in a round-robin fashion (also referred to as proportional fill) so that the latches on PFS and SGAM pages are distributed among multiple files. This is supported both in SQL Server 2000 and SQL Server 2005. There are improvements to the proportional fill algorithm in SQL Server 2005. Use TF-1118. Under this trace flag SQL Server allocates full extents to each TempDB object, thereby eliminating the contention on SGAM page. This is done at the expense of some waste of disk space in TempDB. This trace flag has been available since SQL Server 2000. With improvements in TempDB object caching since SQL Server 2005, there should be significantly less contention in allocation structures. If you see contention in SGAM pages, you may want to use this trace flag. Cached TempDB objects may not always be available. For example, cacached TempDBobjects are destroyed when the query plan with which they are associated is recompiled or removed from the procedure cache.Note:For each release of SQL Server, TempDB has more potential uses such as with SNAPSHOT ISOLATION level, temporary statistics use for read-only databases in SQL Server 2012 and more. It is recommended to keep a close watch on the usage of TempDB and leverage the TF1118 if the data file and sizing best practices do not address allocation bottlenecks.Additionally consider putting TempDB on local SSD disks in order to maximize disk performance.Reference:SQL Server, Access Methods Objecthttp://technet.microsoft.com/en-us/library/ms177426.aspxWorking with TempDB in SQL Server 2005http://msdn.microsoft.com/en-us/library/cc966545.aspxTroubleshooting Performance Problems in SQL Server 2008http://download.microsoft.com/download/D/B/D/DBDE7972-1EB9-470A-BA18-58849DB3EB3B/TShootPerfProbs2008.docx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Buffer Manager\Buffer cache hit ratio</CounterName>
+        <Description>The Buffer Cache Hit Ratio measures the percentage of pages that were found in the buffer pool without having to incur a read from disk. This counter indicates how often SQL Server goes to the buffer, not the hard disk, to get data. The higher this ratio, the better. A high ratio, close to 100% indicates that SQL Server did not have to go to the hard disk often to fetch data, and performance overall is boosted. If the Buffer Cache Hit Ratio was 100% that would suggest that all of the pages are being accessed from cache and does not require trips to disk, because of the optimistic read ahead mechanism, this is not exactly the case.When a user session wants to read data from the database, it will read directly from the SQL Server buffer cache (a logical read), or, if the buffer cache does not have the data that is requested, the data will be read into the buffer cache from disk (a physical read) and then from the buffer cache. If the requested data is in the buffer cache, then it is called a 'buffer hit'. If the data is not in the buffer cache it is called a 'buffer miss'. The ratio of buffer hits to total buffer requests is called the buffer cache hit ratio as can be seen from the following: Cache Hit Ratio = (Logical Reads - Physical Reads)/Logical ReadsA read from memory takes approximately 100 nanoseconds, while a read from disk takes about 8 milliseconds or more. 1 millisecond = 1,000,000 nanosecondsThe important point about SQL Server read operations is that when selecting data from the database, the user will wait on the complete read operation including all of the physical reads. The time is takes to select from the database depends on how much data will be read and how long it takes for those reads to occur. Even with cache reads, the time it takes to read a large amount of data can be significant. With physical reads, the time will be even longer.There are a few considerations to be aware of regarding the Buffer Cache Hit Ratio counter. First, unlike many of the other counters available for monitoring SQL Server, this counter averages the Buffer Cache Hit Ratio from the time the instance of SQL Server was started. In other words, this counter is not a real-time measurement, but an average. Secondly, the buffer cache hit ratio may be skewed by the read ahead mechanism. Read Ahead Reads are pages that were read into cache while the query was processed. Read aheads are an optimistic form of physical reads. Because of the read ahead mechanism, you should not infer from a high buffer cache hit ratio that SQL Server is not suffering from memory pressure or at least could not benefit from additional memory.Threshold: Yellow: Less than 97 percent buffer cache hit ratioRed: Less than 90 percent buffer cache hit ratioNext Steps:Run expensive queries through the Database Tuning Advisor (DTA), add additional memory, and look for queries with a high number of logical reads and consider tuning and potentially rewriting them.Reference:SQL Server, Access Methods Objecthttp://msdn.microsoft.com/en-us/library/ms177426.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Buffer Manager\Free pages</CounterName>
+        <Description>Total number of pages on all free lists. The more free pages that are available then the less often the lazy writer will have to fire keeping pages in the buffer pool longer.A value less than 640 (or 5 MB) may indicate physical memory pressure.Threshold:Yellow: Less than 640 Free PagesNext Steps:Compare the Buffer Manager\Free pages counter to the following:**Buffer Manager\Lazy Writes /sec**Buffer Manager\Page Life ExpectancyThe higher the Buffer Manager\Free pages then the higher the Buffer Manager\Page Life Expectancy should be. If Buffer Manager\Free pages is low then the Buffer Manager\Lazy Writes /sec will be higher as the Lazy Writer will become active attempting to free the buffer cache as SQL Server will be under memory pressure.Reference:SQL Server, Access Methods Objecthttp://msdn.microsoft.com/en-us/library/ms177426.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Buffer Manager\Lazy writes/sec</CounterName>
+        <Description>The Lazy Writes/sec counter records the number of buffers written each second by the buffer manager's lazy write process. This counter tracks how many times a second that the Lazy Writer process is moving dirty pages from the buffer to disk in order to free up buffer space. This process is where thedirty, aged buffers are removed from the buffer by a system process that frees the memory up for other uses. A dirty, aged buffer is one that has changes and needs to be written to the disk. High value on this counter possibly indicates I/O issues or even SQL Server memory problems. The Lazy writes / sec values should consistently be less than 20 for the average system. Generally speaking, this should not be a high value, say more than 20 per second or so. Ideally, it shouldbe close to zero. If it is zero, this indicates that your SQL Server's buffer cache is plenty big and SQL Server doesn't have to free up dirty pages, instead waiting for this to occur duringregular checkpoints. If this value is high, then a need for more memory is indicated.Note: NUMA will increase the number of lazy writer threads per NUMA node and influence the behavior of the lazy writer by increasing its execution at this view. If the server is a NUMA environment other signs of memory pressure should be used and you should analyze the Buffer Node counters for Page Life Expectancy per node. There is not a lazy writer counter in Buffer Nodes.Threshold:Red: Greater than 20 Lazy Writes per secondNext Steps:Look for an increase in SQL Server: Buffer Manager: Checkpoint Pages/sec and SQL Server:Buffer Manager: Lazy Writes/sec performance object countersbecause since SQL Server 2005 starts to flush pages out of the buffer pool cache under memory pressure.Reference:SQL Server, Access Methods Objecthttp://msdn.microsoft.com/en-us/library/ms177426.aspxConfigure SQL Server to Use Soft-NUMAhttp://msdn.microsoft.com/en-us/library/ms345357.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Buffer Manager\Page life expectancy</CounterName>
+        <Description>Number of seconds a page will stay in the buffer pool without references. This performance monitor counter tells you, on average, how long data pages arestaying in the buffer. Any large drops of 30% or more should be investigated. Below 600 should be monitored and very low values near zero are considereda critical state. For monitoring, we are alerting at a warning level at 600 and a critical state of lower than 300 seconds, though getting a baseline is the bestapproach.When page life expectancy gets too low, this is an indication that SQL Server is doing too many logical reads putting pressure on the buffer pool. It is recommended to correlate page life expectancy with lazy writer activity. When page life expectancy becomes low, then SQL Server will respond by sweeping through the buffer pool usingthe lazy writer, increasing lazy writer activity. Low page life expectancy may cause more physical reads increasing pressure on disk and slowing down SQL Server responsiveness.The Page life expectancy counter is considered one of the most critical counters for SQL Server. If Page life expectancy becomes low SQL Server willattempt physical reads from disk into the buffer pool to honor requests. Requests from physical disk will take considerably longer causing higher diskcosts.Note: NUMA systems will have a CPU and memory grouping per node. If the server is a NUMA environment you should analyze the Buffer Node countersfor Page Life Expectancy per node. You can tell a server is a NUMA system by checking the SQL Server error log or by querying sys.dm_os_memory_nodes. A non-NUMA systemwill have 2 nodes listed, A NUMA system will have additional nodes for each of the hardware NUMA nodes in the system.Threshold: Yellow: Page life expectancy is less than 10 minutes (600 seconds)Red: Page life expectancy is less than 5 minutes (300 seconds)Next Steps:If Buffer Manager\Page life expectancy is low then the Buffer Manager\Lazy Writes /sec will be higher as the Lazy Writer will become active attempting to free thebuffer cache as SQL Server will be under memory pressure. Due to the disk impact of the physical reads incurred, the \Physical Disk \Avg. Disk sec/Read counter may also becomea bottleneck as SQL Server is reading from disk instead of the buffer pull to honor requests.Look for an increase in SQL Server: Buffer Manager: Checkpoint Pages/sec and SQL Server:Buffer Manager: Lazy Writes/sec performance object counters because since SQLServer 2005 / 2008 starts to flush pages out of the buffer pool cache under memory pressure. Run expensive queries through the Database Tuning Advisor (DTA), look for queries with a high number of logical reads and consider tuning and potentially rewriting them, and potentially add additional memory if non-hardware options to not address the issue.Reference:SQL Server, Access Methods Objecthttp://msdn.microsoft.com/en-us/library/ms177426.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Buffer Manager\Page lookups/sec</CounterName>
+        <Description>Number of requests to find a page in the buffer pool. When the ratio of page lookups to batch requests is greater than 100, this is an indication that while query plans are looking up data in the buffer pool, these plans are inefficient or there was a large number of ad-hoc queries.Threshold:Ratio of Page Lookups/sec to Batch Requests/sec less than 100 to 1.Warning: Page life expectancy is less than 5 minutes (300 seconds)Next Steps:Page Lookups/sec is the number of requests to find a page in the buffer pool made per second. If this number is high as compared to the number of batch requests, this indicates a degree of inefficiency and a potential opportunity for tuning.Identify queries with the highest amount of logical I/O's and tune them.Note: You can track the Page Lookups/sec and other counters through the sys.dm_os_performance_counters DMV which contains all the SQL Server instance object-related counters that you can find in perfmon.Reference:SQL Server, Buffer Manager Objecthttp://msdn.microsoft.com/en-us/library/ms189628.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Buffer Manager\Page reads/sec</CounterName>
+        <Description>Number of physical database page reads issued per second. Number of physical database page reads issued. 80 to 90 per second is normal, anything that is above indicates indexing or memory constraint.Threshold:Yellow: Page Reads/sec greater than 90Next Steps:Attempt to tune the application so that fewer I/O operations are required. For example, perhaps I/O would be reduced if there were appropriate indexes or if the database design were denormalized.If the applications cannot be tuned, you will need to acquire disk devices with more capacity. Compare to the Memory: Pages/sec counter to see if there is paging while the SQL Server:Buffer Manager\Page reads/sec is high.Note: Before adjusting the fill factor, at a database level compare the SQL Server:Buffer Manager\Page reads/sec counter to the SQL Server:Buffer Manager\Page writes/sec counter, and use the fill factor option only if writes are a substantial fraction of reads (greater than 30 percent).Reference:SQL Server, Buffer Manager Objecthttp://msdn.microsoft.com/en-us/library/ms189628.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Buffer Manager\Page writes/sec</CounterName>
+        <Description>Number of physical database page writes issued per second. 80 to 90 per second is normal. Anything above 90, it is recommended to check the lazy writer/sec and Checkpoint pages/sec counter, if these counters are also relatively high then, this indicates a memory constraint.Threshold:Yellow: Page Writes/sec greater than 90Next Steps:Attempt to tune the application so that fewer I/O operations are required. For example, perhaps I/O would be reduced if there were appropriate indexes or if the database design were denormalized.If the applications cannot be tuned, you will need to acquire disk devices with more capacity. Compare to the Memory: Pages/sec counter to see if there is paging while the SQL Server:Buffer Manager\Page reads/sec is high. Note: Before adjusting the fill factor, at a database level compare the SQL Server:Buffer Manager\Page reads/sec counter to the SQL Server:Buffer Manager\Page writes/sec counter, and use the fill factor option only if writes are a substantial fraction of reads (greater than 30 percent).Reference:SQL Server, Buffer Manager Objecthttp://msdn.microsoft.com/en-us/library/ms189628.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:General Statistics\Logins/sec</CounterName>
+        <Description>Login and logout rates should be approximately the same. A login rate higher than the logout rate suggests that the server is not in a steady state, or that applications are not correctly using connection pooling. This could result in an increased load on the server.Next Steps:Verify if the .NET connection string is using the pooling=true e connection reset=true parameters. If so, a profiler trace with the Audit login and Audit logout Events would reveal the usage of sp_reset_connection stored procedure, which is used by SQL Server to support remote stored procedure calls in a transaction. This stored procedure also causes Audit Login and Audit Logout events to fire when a connection is reused from a connection pool. Also, the EventSubClass column in the trace will show if the connections are being pooled or not. Therefore focus the comparison only on the rate of non-pooled Logins and Logouts, as pooled connections will be reflected in the Logins/sec counter, but not on the Logouts/sec counter.Reference:SQL Server 2012 Books Online: SQL Server: General Statistics Objecthttp://technet.microsoft.com/en-us/library/ms190697(v=sql.110).aspxSQL Server Connection Poolinghttp://msdn.microsoft.com/en-us/library/8xx3tyca.aspxSQL Server 2012 Books Online: Audit Login Event Classhttp://msdn.microsoft.com/en-us/library/ms190260(v=sql.110).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:General Statistics\Logouts/sec</CounterName>
+        <Description>Total number of logouts started per second. Greater than 2 per second indicates that the application is not correctly using connection pooling.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:General Statistics\User Connections</CounterName>
+        <Description>Number of users connected to the system. The number of users currently connected to the SQL Server. This should correlate with the Batch Requests per second counter.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Latches\Latch Waits/sec</CounterName>
+        <Description>Number of latch requests that could not be granted immediately and had to wait before being granted. These are the amount of latches that had to wait. Latch Waits/sec and Total Latch Wait Time (ms) can be correlated to find the average latch wait time. If each latch wait is more than 10 milliseconds on average, your SQL Server may be spending too much time waiting on the various latches. It could also be facing resource contention as a result.Recommendation: Review the wait statistics on the server to find the top resources that the SQL Server is waiting on.Reference:Performance Tuning Waits and Queueshttp://www.microsoft.com/technet/prodtechnol/sql/bestpractice/performance_tuning_waits_queues.mspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Memory Manager\Memory Grants Pending</CounterName>
+        <Description>Current number of processes waiting for a workspace memory grant. Memory Grants Pending records the number of connections that are waiting for memory before they can begin processing a memory intensive query such as a sort or hash operation. Connections that wait in this state for a long enough time will eventually receive an 8645 error (A time out occurred while waiting for memory resources to execute the query. Rerun the query). A spid waiting in this state will have a waittype of 0x0040 (RESOURCE_SEMAPHORE) in sysprocesses. If this counter remains above zero for any significant amount of time then you will need to track down what queries are doing sorts/hashes and run them through Database Tuning Advisor (DTA) to see if they can get a more efficient plan.Threshold:Red: Numbers higher than 0 indicate a lack of memory.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Memory Manager\Target Server Memory (KB)</CounterName>
+        <Description>Total amount of dynamic memory the server is willing to consume.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:SQL Statistics\Batch Requests/sec</CounterName>
+        <Description>Number of SQL batch requests received by server. This counter measures the number of batch requests that SQL Server receives per second, and generally follows in step to how busy your server's CPUs are. Generally speaking, over 1000 batch requests per second indicates a very busy SQL Server, and could mean that if you are not already experiencing a CPU bottleneck, that you may very well soon. Of course, this is a relative number, and the bigger your hardware, the more batch requests per second SQL Server can handle. From a network bottleneck approach, a typical 100Mbs network card is only able to handle about 3000 batch requests per second. If you have a server that is this busy, you may need to have two or more network cards, or go to a 1Gbs network card. Note: Sometimes low batch requests/sec can be misleading. If there were a SQL statements/sec counter, this would be a more accurate measure of the amount of SQL Server activity. For example, an application may call only a few stored procedures yet each stored procedure does lot of work. In that case, we will see a low number for batch requests/sec but each stored procedure (one batch) will execute many SQL statements that drive CPU and other resources. As a result, many counter thresholds based on the number of batch requests/sec will seem to identify issues because the batch requests on such a server are unusually low for the level of activity on the server. We cannot conclude that a SQL Server is not active simply by looking at only batch requests/sec. Rather, you have to do more investigation before deciding there is no load on the server. If the average number of batch requests/sec is below 5 and other counters (such as SQL Server processor utilization) confirm the absence of significant activity, then there is not enough of a load to make any recommendations or identify issues regarding scalability. Note: Batch requests / sec is a great counter to use for baselining and to use as a measurement of how many batches the system could handle before a sympton was evident or a particular condition occured. This counter will greatly depend on SQL Server code and the hardware being used. It is often used as a gauge of saying that a particular system was able to handle x number of batch requests per second and then to examine system and SQL Server counters to determine what resource is the bottlneck at that particular workload.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:SQL Statistics\SQL Compilations/sec</CounterName>
+        <Description>Number of SQL compilations that occured per second that includes recompiles. A high value subtracting recompiles can be an indication of a large number of ad hoc queries that can also be cross referenced with the number of ad hoc plans in the plan cache counter. Be aware of the following:**FORCED PARAMETERIZATION can be set at the database level. This makes SQL Server become much more aggressive in deciding which queries to auto-parameterize. The down-side of this option is that it could potentially introduce parameter-sensitivity problems. (This option was also available in SQL Server 2005).**OPTIMIZE FOR ADHOC WORKLOADS is a new sp_configure server level option. When set, SQL Server only caches a plan stub on the first execution of an ad-hoc query. The next time the same query is executed, the full plan is stored. Plan stubs are much smaller than query plans and this option ensures that the plan cache is not filled by query plans that have never been reused.ReferenceSQL Server, Plan Cache Objecthttp://msdn.microsoft.com/en-us/library/ms177441(v=sql.105).aspxSQL Server Compilation Bottleneckshttp://blogs.msdn.com/grahamk/archive/2009/02/03/compilation-bottlenecks-error-8628-severity-17-state-0-part-1.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:SQL Statistics\SQL Re-Compilations/sec</CounterName>
+        <Description>Number of SQL re-compiles per second thatmeasures the number of times that a statement executed, but had to be compiled again before the statement completed. There are a variety of reasons that a recompile occured such as statistics being out of date, an column was added to a table a store procedure depends on, statement was run with a recompile option, etc. This counter needs to be as close to 0 as possible. A recompile can cause deadlocks and compile locks that are not compatible with any locking type. SQL Server Trace / Profiler provides an execellent way to find out exactly why recompiles are occuring in your environment.Troubleshooting stored procedure recompilation http://support.microsoft.com/kb/243586How to identify the cause of recompilation in an SP:Recompile eventhttp://support.microsoft.com/kb/308737</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Access Methods\Index Searches/sec</CounterName>
+        <Description>A few of the main causes of high Full Scans/sec are missing indexes, too many rows requested, queries with missing indexes, or too many rows requested will have a large number of logical reads and an increased CPU time. This analysis throws a Warning alert if the ratio of Index Searches/sec to Full Scans/sec is less than 1000 to 1 and if there are more than 1000 Index Searches/sec.Note: This counter monitors the number of full scans on tables or indexes. This counter can be ignored unless there is also high CPU use along with high scan rates. High scan rates may be caused by missing indexes, very small tables, or requests for too many records.Threshold:Yellow: A ratio of more than 1 full scan for every 1000 index searches. The value of Index Searches/sec and Full Scans/sec should be greater than1000.Formula:(AvgSQLServerAccessMethodsIndexSearchessecAll / AvgSQLServerAccessMethods_FullScanssec) less than 1000Next Steps:The main causes of high Full Scans/sec are:**Missing indexes**Too many rows requestedQueries with missing indexes or too many rows requested will have a large number of logical reads and an increased CPU time. As mentioned, if there is a high level of Full Scans to Index Searches, then it is important to also check the following:See PERFMON SQLServer:Buffer Manager performance counters for memory pressure:**Page Life Expectancy**Checkpoint pages/sec**Lazy writes/secA high number of scans can cause buffer pool pressure (as indicated with low PLE and a higher Lazy Writes / sec count). Memory pressure will quickly manifest into disk pressure, so also check:See PERFMON Physical Disk performance counters:**Disk sec/read**Disk sec/writeNote: Identify disk bottlenecks by using Performance Counters, Profiler, sys.dm_io_virtual_file_stats and SHOWPLAN output.Also refer to the sys.dm_io_virtual_file_stats dynamic management view (DMV) to track io_stalls to help identify IO bottlenecks. To back up and support this information, compare the counters to sys.dm_os_wait_stats output. If you see high values in perfmon, you may also see high waits for the following:**ASYNC_IO_COMPLETION**IO_COMPLETION**PAGEIOLATCH_* (Data page I/O completion waits appear as PAGEIOLATCH_* waits)Reactively, SQL Profiler can be used to identify which SQL statements are causing scans. Use the scans event class and events scan:started and scan:completed. Include the object ID data column. Save the profiler trace to a file and then convert it to trace table. You can then search for the scans event. The scan:completed event provides the associated IO so that you can also search for high reads, writes, and duration.Reference:SQL Server, Access Methods Objecthttp://msdn.microsoft.com/en-us/library/ms177426.aspxSQL Server 2005 Waits and Queueshttp://download.microsoft.com/download/4/7/a/47a548b9-249e-484c-abd7-29f31282b04d/Performance_Tuning_Waits_Queues.docWait Types and Correlation to Other Performance Infohttp://www.sqlmag.com/Files/09/40925/Webtable_01.doc</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Locks(_Total)\Lock Requests/sec</CounterName>
+        <Description>Lock Requests/sec reports the number of new locks and lock conversions requested from the lock manager per second. A Lock Requests/sec greater than 500 when compared to Batch Request/sec indicates that batches are acquiring a large number of locks. This suggests inefficient queries and there is a risk is that blocking may occur.Threshold: (Yellow) - This value should not be greater than 50% of the number of Batch Requests/Sec.Yellow Greater than &gt; 1000 Lock Requests / secNext Steps:Review high-read queries. In addition, examine the code to determine where to reduce the number of reads by either tuning your application or the database.Reference:SQL Server, Locks Objecthttp://msdn.microsoft.com/en-us/library/ms190216.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:locks(_total)\Lock Waits/sec</CounterName>
+        <Description>Number of lock requests that could not be satisfied immediately and required the caller to wait before being granted the lock. This is a sign that there is some blocking occuring and would be a good baseline measurement of lock waits for load testing. Note: Lock waits are not recorded by until after the lock event completes. For examining active blocking it is recommended to query sys.dm_os_waiting_tasks.ThresholdYellow Values greater than 0</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:locks(_total)\Lock Wait Time (ms)</CounterName>
+        <Description>Although a sustained average of 500 or more milliseconds can indicate that your SQL Server is spending too much time waiting for locks, also watch for peaks that exceed 60 seconds for extended blocking for a given workload in your system. Recommendation: Look for peaks that approach or exceed 60 seconds. Even though this counter counts how many total milliseconds SQL Server is waiting on locks over the last second, the counter actually records the lock wait time for a particular lock wait at the end of the locking event. The following methods can be used to reduce lock contention and increase overall throughput:**Avoid situations in which many processes are attempting to perform updates or inserts on the same data page.**Avoid transactions that include user interaction. Because locks are held for the duration of the transaction, a single user can degrade the entire systems performance.**Keep transactions that modify data as short as possible. The longer the transaction, the longer the exclusive or update locks are held. This blocks other activity and can lead to an increased number of deadlock situations.**Keep transactions in one batch. Unanticipated network problems may delay transactions from completing and thus releasing locks.**Avoid pessimistic locking hints such as holdlock whenever possible. They can cause processes to wait even on shared locks.**In most cases, you should use SQL Server's default isolation level. The isolation level determines at what point the tradeoffs are made between concurrency and consistency. If you have a strong business need for a higher isolation level, make sure that you evaluate all the tradeoffs and perform thorough testing under a high stress load.**Reduce the fillfactor when creating an index to help diminish the chance of random updates requiring the same page. This is especially useful for small tables that are frequently accessed.**If you are using DB-Library (DB-Lib), optimistic concurrency control can be specified by using the CCUR_OPTCC setting in dbcursoropen(). This option ensures that update locks are obtained only when a user wants to commit a transaction.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:locks(_total)\Lock Timeouts/sec</CounterName>
+        <Description>Number of lock requests that timed out. This does not include requests for NOWAIT locks. A value greater than zero might indicate that user queries are not completing.ThresholdYellow Greater than 1</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:locks(_total)\Number of Deadlocks/sec</CounterName>
+        <Description>Number of lock requests, per second, which resulted in a deadlock. Deadlocks are always an issue that should be resolved. A deadlock transaction that is killed must be rerun. It is recommended to use the SQL Trace deadlock graph, trace flag 1222, and the extended events deadlock capture to help identify and solve all of the deadlocks in your environment.ThresholdRed Any Deadlocks greater than 0ResourcesBart Duncan Deadlock Resources**Part 1 - http://blogs.msdn.com/b/bartd/archive/2006/09/09/deadlock-troubleshooting_2c00_-part-1.aspx**Part 2 - http://blogs.msdn.com/b/bartd/archive/2006/09/13/751343.aspx**Part 3 - http://blogs.msdn.com/b/bartd/archive/2006/09/25/770928.aspxGetting historical deadlock info using extended eventshttp://www.sqlskills.com/BLOGS/PAUL/post/Getting-historical-deadlock-info-using-extended-events.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Latches\Total Latch Wait Time (ms)</CounterName>
+        <Description>If the total latch wait time is above 500 milliseconds per each second on average, your SQL Server may be spending too much time waiting on the various latches. It could also be facing resource contention as a result. Recommendation: Review the wait statistics on the server to find the top resources that the SQL Server is waiting on.Reference:Performance Tuning Waits and Queueshttp://www.microsoft.com/technet/prodtechnol/sql/bestpractice/performance_tuning_waits_queues.mspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">\Process(sqlservr)\% Processor Time</CounterName>
+        <Description>% Processor Time is the percentage of elapsed time that all of process threads used the processor to execution instructions. An instruction is the basic unit of execution in a computer, a thread is the object that executes instructions, and a process is the object created when a program is run. Code executed to handle some hardware interrupts and trap conditions are included in this counter.This counter measures the percentage of total processor time spent (user mode and kernel mode) on SQL Server process threads. If this counter stays at 80% for sustained periods of time, then you may also wish to investigate other Process (sqlservr) such as Private Bytes, Virtual Bytes, and Working Set to get a better understanding of how SQL Server allocates certain segments of memory.Threshold:Red: SQL Server is using more than 30% user mode CPU usageReference:Monitoring CPU Usagehttp://msdn.microsoft.com/en-us/library/ms178072.aspxAsk the Performance Teamhttp://blogs.technet.com/askperf/archive/2008/01/18/do-you-know-where-your-processor-spends-its-time.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Memory Manager\Memory Grants Outstanding</CounterName>
+        <Description>Total number of processes per second that have successfully acquired a workspace memory grant. This counter should be used as a baseline for comparisons under load.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Memory Manager\Granted Workspace Memory (KB)</CounterName>
+        <Description>Total amount of memory granted to executing processes. This memory is used for hash, sort and create index operations.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Memory Manager\Maximum Workspace Memory (KB)</CounterName>
+        <Description>Total amount of memory granted to executing processes. This memory is used primarily for hash, sort and create index operations.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Databases(*)\Data File(s) Size (KB)</CounterName>
+        <Description>The cumulative size of all the data files in the database.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Databases(*)\Log Bytes Flushed/sec</CounterName>
+        <Description>Total number of log bytes flushed.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Databases(*)\Log File(s) Size (KB)</CounterName>
+        <Description>The cumulative size of all the log files in the database.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Databases(*)\Log File(s) Used Size (KB)</CounterName>
+        <Description>The cumulative used size of all the log files in the database.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Databases(*)\Log Flush Wait Time</CounterName>
+        <Description>Total wait time (milliseconds).</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Databases(*)\Log Flush Waits/sec</CounterName>
+        <Description>Number of commits waiting on log flush.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Databases(*)\Log Flushes/sec</CounterName>
+        <Description>Number of log flushes.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Databases(*)\Log Growths</CounterName>
+        <Description>Total number of log growths for this database.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Databases(*)\Log Truncations</CounterName>
+        <Description>Total number of log truncations for this database.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Databases(*)\Log Shrinks</CounterName>
+        <Description>Total number of log shrinks for this database.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Databases(*)\Percent Log Used</CounterName>
+        <Description>The percent of space in the log that is in use.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:SQL Statistics\Auto-Param Attempts/sec</CounterName>
+        <Description>Number of auto-parameterization attempts.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:SQL Statistics\Failed Auto-Params/sec</CounterName>
+        <Description>Number of failed auto-parameterizations.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:SQL Statistics\Safe Auto-Params/sec</CounterName>
+        <Description>Number of safe auto-parameterizations.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:SQL Statistics\Unsafe Auto-Params/sec</CounterName>
+        <Description>Number of unsafe auto-parameterizations.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Workload Group Stats(*)\CPU usage %</CounterName>
+        <Description>System CPU usage by all requests in the specified instance of the performance object.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Workload Group Stats(*)\Requests completed/sec</CounterName>
+        <Description>Number of completed requests per second in the workload group.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Workload Group Stats(*)\Queued requests</CounterName>
+        <Description>Number of requests waiting in the queue due to resource governor limits in the workload group.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Resource Pool Stats(*)\CPU usage %</CounterName>
+        <Description>System CPU usage by all requests in the specified instance of the performance object.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Resource Pool Stats(*)\Target memory (KB)</CounterName>
+        <Description>Target amount of memory in kilobytes the resource pool is trying to attain based on the settings and server state.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Resource Pool Stats(*)\Used memory (KB)</CounterName>
+        <Description>Used amount of memory in kilobytes in the resource pool.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Buffer Manager\Free list stalls/sec</CounterName>
+        <Description>Number of requests that had to wait for a free page.  ree list stalls/sec is the frequency with which requests for available database pages are suspended because no buffers are available. Free list stall rates of greater than 2 per second indicate too little SQL memory available.ReferenceThresholdYellow - Free list stalls/sec &gt; 2SQL Server, Buffer Manager Objecthttp://technet.microsoft.com/en-us/library/ms189628.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Buffer Manager\Checkpoint pages/sec</CounterName>
+        <Description>Number of pages, per second, flushed by checkpoint or other operations that require all dirty pages to be flushed. The checkpoint frequency can be due to low memory conditions as well as the recovery interval set by sp_configure.ReferenceSQL Server, Buffer Manager Objecthttp://msdn.microsoft.com/en-us/library/ms189628.aspxA SQL Server DBA myth a day: (15/30) checkpoint only writes pages from committed transactionshttp://www.sqlskills.com/BLOGS/PAUL/category/Checkpoint.aspxDatabase Checkpoints (SQL Server)http://technet.microsoft.com/en-us/library/ms189573(v=sql.110).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Buffer Manager\Readahead pages/sec</CounterName>
+        <Description>Number of pages read, in second, in anticipation of use which is an optimistic physical read. This number should not exceed greater than 20% of total page reads.Threshold:Yellow:Less than 20% of Page Reads/sechttp://technet.microsoft.com/en-us/library/ms189628.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Deprecated Features(*)\Usage</CounterName>
+        <Description>Feature usage since last SQL Server startup.  You can also examine performance counters through the sys.dm_os_performance_counters DMV. By using the perfmon counters for deprecation and the DMVs, you can help your application prepare and avoid issue when migrating to the future versions of SQL Server.SELECT * FROM sys.dm_os_performance_countersWHERE object_name LIKE '%Deprecated Features%' AND cntr_value &gt; 0ORDER BY cntr_value DESCSQL Server, Deprecated Features Objecthttp://technet.microsoft.com/en-us/library/bb510662.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:SQL Statistics\SQL Attention rate</CounterName>
+        <Description>Number of attentions per second. Attentions are the number of user cancels and query timeout that occured per second. A high number of attentions may indicate slow query performance as users are cancelling queries.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:SQL Errors(*)\Errors/sec</CounterName>
+        <Description>Number of errors/sec</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Plan Cache(*)\Cache Hit Ratio</CounterName>
+        <Description>The Plan Cacheobject provides counters to monitor how SQL Server uses memory to store objects such as stored procedures, ad hoc and prepared Transact-SQL statements, and triggers. Multiple instances of the Plan Cache object can be monitored at the same time, with each instance representing a different type of plan to monitor.Compiled Plan Stubs and Plan Cache Perf Counters:**Cache Pages: Reports pages for compiled plans and compiled plan stubs**Cache Object Count: Includes compiled plans stubs**Cache Hit Ratio: Not incremented for compiled plan stub hitsIn SQL Server 2008 R2, there are three options that can help in dealing with plan cache pollution issues.**FORCED PARAMETERIZATION can be set at the database level. This makes SQL Server become much more aggressive in deciding which queries to auto-parameterize. The down-side of this option is that it could potentially introduce parameter-sensitivity problems. (This option was also available in SQL Server 2005).**OPTIMIZE FOR ADHOC WORKLOADS is a new sp_configure server level option. When set, SQL Server only caches a plan stub on the first execution of an ad-hoc query. The next time the same query is executed, the full plan is stored. Plan stubs are much smaller than query plans and this option ensures that the plan cache is not filled by query plans that have never been reused.**DBCC FREESYSTEMCACHE can be used to clear the cache of plans associated with a particular Resource Governor resource pool. This could be useful when executed periodically if ad-hoc queries are able to be isolated into identifiable resource pools. (This command was also available in SQL Server 2005 but the option to clear a specific resource pool was added in SQL Server 2008).Reference:SQL Server, Plan Cache Objecthttp://msdn.microsoft.com/en-us/library/ms177441(v=sql.105).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:locks(_total)\Average Wait Time (ms)</CounterName>
+        <Description>The average amount of wait time (milliseconds) for each lock request that resulted in a wait. This wait could indicate excessive blocking that can be verified by querying sys.dm_os_waiting_tasks. Compare this counter to "Lock Waits/sec" and look for trends.ThresholdYellow Greater than greater than 500ms Average Wait Time.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Access Methods\Worktables From Cache Ratio</CounterName>
+        <Description>Percentage of work tables created where the initial two pages of the work table were not allocated but were immediately available from the work tablecache.Since SQL Server 2005 worktable caching was improved. When a query execution plan is cached, the work tables needed by the plan are not dropped across multiple executions of the plan but merely truncated. In addition, the first nine pages for the work table are kept. In SQL Server 2000, the work tables used during query plan execution are dropped. Because the work table is cached, the next execution of the query is faster. When the system is low on memory, the execution plan may be removed from the cache and the associated work tables dropped as well. Both SQL Server 2000 and SQL Server 2005 use a small global pool of pre-allocated pages and extents that make the initial creation of work tables faster.Note: When a work table is dropped, two pages may remain allocated and they are returned to the work table cache. A value less than 90% may indicate insufficient memory, since execution plans are being dropped, or may indicate, on 32-bit systems, the need for an upgrade to a 64-bit system.Threshold:Yellow: Less than 90% Worktables from Cache Ratio. This will need to be baselined for accuracy.Reference:SQL Server, Access Methods Objecthttp://msdn.microsoft.com/en-us/library/ms177426(v=sql.110).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Access Methods\Table Lock Escalations/sec</CounterName>
+        <Description>The number of times locks on a table were escalated from page- or row-level to table-level. Frequent or even occasional spiking in this value may indicate poorly coded transactions.Lock Escalation ThresholdsLock escalation is triggered when lock escalation is not disabled on the table by using the ALTER TABLE SET LOCK_ESCALATION option, and when either of the following conditions exists:**A single Transact-SQL statement acquires at least 5,000 locks on a single nonpartitioned table or index.**A single Transact-SQL statement acquires at least 5,000 locks on a single partition of a partitioned table and the ALTER TABLE SET LOCK_ESCALATION option is set to AUTO.**The number of locks in an instance of the Database Engine exceeds memory or configuration thresholds.If locks cannot be escalated because of lock conflicts, the Database Engine periodically triggers lock escalation at every 1,250 new locks acquired.Next StepsReducing Locking and EscalationIn most cases, the Database Engine delivers the best performance when operating with its default settings for locking and lock escalation. If an instance of the Database Engine generates a lot of locks and is seeing frequent lock escalations, consider reducing the amount of locking by: Using an isolation level that does not generate shared locks for read operations.**READ COMMITTED isolation level when the READ_COMMITTED_SNAPSHOT database option is ON.**SNAPSHOT isolation level.**READ UNCOMMITTED isolation level. This can only be used for systems that can operate with dirty reads.Note: Changing the isolation level affects all tables on the instance of the Database Engine.**Using the PAGLOCK or TABLOCK table hints to have the Database Engine use page, heap, or index locks instead of row locks. Using this option, however, increases the problems of users blocking other users attempting to access the same data and should not be used in systems with more than a few concurrent users.**For partitioned tables, use the LOCK_ESCALATION option of ALTER TABLEto escalate locks to the HoBT level instead of the table or to disable lock escalation. You can also use trace flags 1211 and 1224 to disable all or some lock escalations. For more information, see Trace Flags (Transact-SQL). Also, monitor lock escalation by using the SQL Server Profiler Lock:Escalation event; and see Using SQL Server Profiler.Reference:Lock Escalation (Database Engine) - http://msdn.microsoft.com/en-us/library/ms184286(SQL.105).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Transactions\Free Space in tempdb (KB)</CounterName>
+        <Description>The free space in tempdb in KB.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Transactions\Longest Transaction Running Time</CounterName>
+        <Description>The longest running time of any transcation in seconds. This counter could indicate a long running statement pulling large amounts of data that normally takes a long time to execute or potentially a blocking condition.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Transactions\NonSnapshot Version Transactions</CounterName>
+        <Description>The total number of active non-snapshot transactions that generate version records. These are all of the non-snapshot isolation versions such as triggers and online indexing.Note: The sum of Update Snapshot Transactions and NonSnapshot Version Transactions represents the total number of transactions that participate in version generation. The difference of Snapshot Transactions and Update Snapshot Transactions reports the number of read-only snapshot transactions.Reference:http://msdn.microsoft.com/en-us/library/ms176029(SQL.90).aspxhttp://msdn.microsoft.com/en-us/library/ms176029(SQL.90).aspxManaging TempDB in SQL Server: TempDB Basics (Version Store: Why do we need it?)http://blogs.msdn.com/b/sqlserverstorageengine/archive/2008/12/22/managing-tempdb-in-sql-server-tempdb-basics-verison-store.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Transactions\Snapshot Transactions</CounterName>
+        <Description>The total number of active snapshot transactions.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Transactions\Version Cleanup rate (KB/s)</CounterName>
+        <Description>The version cleanup rate in KB per seconds.Monitors the version cleanup rate in KBps in all version stores. If the version cleanup rate is lower than the version generation rate, the version store will use more and more space in tempdb. However, if the version cleanup rate is 0 but the version generation rate is not, there is probably a long-running transaction that is preventing the version store cleanup.Row versions are shared across sessions. The creator of the row version has no control over when the row version can be reclaimed. You will need to find and then possibly stop the longest-running transaction that is preventing the row version cleanup.The following query returns the top two longest-running transactions that depend on the versions in the version store:select top 2transaction_id,transaction_sequence_num,elapsed_time_secondsfrom sys.dm_tran_active_snapshot_database_transactionsorder by elapsed_time_seconds DESCReferenceRow Versioning Resource Usagehttp://msdn.microsoft.com/en-us/library/ms175492.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Transactions\Version Generation rate (KB/s)</CounterName>
+        <Description>The version generation rate in KB per seconds.You can use the Version Generation Rate and Version Cleanup Rate counters to measure version store impact on TempDB. THe Version Generation Rate should not outpace the Cleanup Rate. Additionally, if your Version Cleanup Rate is 0, a long-running transaction could be preventing the version store cleanup. Incidentally, before generating an out-of-tempdb-space error, SQL Server 2008 makes a last-ditch attempt by forcing the version stores to shrink. During the shrink process, the longest-running transactions that have not yet generated any row versions are marked as victims. This frees up the version spaceused by them. Message 3967 is generated in the error log for each such victim transaction. If a transaction is marked as a victim, it can no longer read the row versions in the version store or create new ones. Message 3966 is generated and the transaction is rolled back when the victim transaction attempts to read row versions. If the shrink of the version store succeeds, more space is available in tempdb. Otherwise, tempdb runs out of space.If TempDB fills and runs out of space,writes will continue, butversions will not and reads will fail.ReferenceSQL Server, Transactions Objecthttp://technet.microsoft.com/en-us/library/ms189038.aspx</Description>
+      </Counter>
+
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Buffer Node(*)\Foreign pages</CounterName>
+        <Description>Number of pages which are not from NUMA-local memory.When we are using NUMA architecture which is becoming more common you will see memory nodes. We have one memory node per NUMA node and this is used to allocate memory in a particular node. This is visible in the SQL Server Buffer Node perfmon group. If you want to make sure you are performing local memory access versus foreign memory access we need to pay attention to where the memory is being allocated which can be tracked viasys.dm_os_memory_nodes.If we do not have enough memory in a particular NUMA node, we will perform a foreign access if we have to, but SQL Server tries to avoid this.Reference:http://msdn.microsoft.com/en-us/library/ms345597(v=sql.110).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Resource Pool Stats(*)\Max memory (KB)</CounterName>
+        <Description>Maximum amount of memory in kilobytes the resource pool can have based on the settings and server state.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">\MSRS 2011 Web Service\Cache Misses/Sec</CounterName>
+        <Description>memory) are sufficient.Performance Counters for the MSRS 2011 Windows Service Performance Objecthttp://technet.microsoft.com/en-US/library/ms157314(v=sql.110).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">\MSRS 2011 Web Service\Report Requests</CounterName>
+        <Description>Number of reports that are currently active and being handled by the report server. Use this counter to evaluate caching strategy. There might be significantly more requests than reports generated.Performance Counters for the MSRS 2011 Windows Service Performance Objecthttp://technet.microsoft.com/en-US/library/ms157314(v=sql.110).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">\MSRS 2011 Web Service\Total Memory Cache Misses</CounterName>
+        <Description>Total number of cache misses against the in-memory cache after the service started. This counter resets when the application domain recycles. Performance Counters for the MSRS 2011 Windows Service Performance Objecthttp://technet.microsoft.com/en-US/library/ms157314(v=sql.110).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">\MSRS 2011 Web Service\Total Requests</CounterName>
+        <Description>Total number of reports that ran successfully after the service started. This counter resets when the application domain recycles.Performance Counters for the MSRS 2011 Windows Service Performance Objecthttp://technet.microsoft.com/en-US/library/ms157314(v=sql.110).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">\SQLAgent:Jobs\Active jobs</CounterName>
+        <Description>Number of running jobs. This counter can be used to find out if the current load on the system is potentially being driven from SQL Server Agentexecution.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">\SQLAgent:Jobs\Failed jobs</CounterName>
+        <Description>The number of Jobs that have failed to complete successfully for any reason since the last SQL Server Agent restart.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">\SQLAgent:Jobs\Job success rate</CounterName>
+        <Description>Percentage of successful jobs from the total number of executed jobs.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">\SQLAgent:Jobs\Successful jobs</CounterName>
+        <Description>The number of Jobs that have successfully completed since the last SQL Server Agent restart.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">\SQLAgent:JobSteps\Active steps</CounterName>
+        <Description>Number of active SQL Agent Job steps.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">\SQLAgent:JobSteps\Total step retries</CounterName>
+        <Description>The total number of times any Job Step execution is retried since the last SQL Server restart.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Availability Replica(_Total)\Sends to Replica/sec</CounterName>
+        <Description>Number of AlwaysOn messages sent to this availability replica per second</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Availability Replica(_Total)\Resent Messages/sec</CounterName>
+        <Description>Number of AlwaysOn messages resent in the last second</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Availability Replica(_Total)\Receives from Replica/sec</CounterName>
+        <Description>Number of AlwaysOn messages received from the replica per second</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Availability Replica(*)\Bytes Received from Replica/sec</CounterName>
+        <Description>Bytes Received from Replica/sec: Number of bytes received from the availability replica per second</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Availability Replica(*)\Bytes Sent to Replica/sec</CounterName>
+        <Description>Number of bytes sent to the remote availability replica per second</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:User Settable(*)\Query</CounterName>
+        <Description>Note: These counters are not defined by default and would be 0 unless configured through SQL Server through the sp_user_counter# storedprocedures.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Database Replica(_Total)\Transaction Delay</CounterName>
+        <Description>Number of milliseconds transaction termination waited for acknowledgement per second.  The Replica:Transaction Delay counter measures the primary replica’s wait for acknowledgement that the transaction has committed at the secondary replica database in order to commit its own transaction. Since Asynchronous Commit Mode does not require acknowledgment to commit the transaction, this counter reports 0 when measured against a database in asynchronous commit mode. When there are multiple secondaries, this is a measure of the total time all transactions waited on the secondary acknowledgement. Note: This counter should be viewed on the Primary replica</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Database Replica(_Total)\Total Log requiring undo</CounterName>
+        <Description>The amount of log in kilobytes that need to be undone.Note: This counter should be viewed on the Secondary replica</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Database Replica(_Total)\Redone Bytes/sec</CounterName>
+        <Description>Amount of log records redone on the secondary database in the last second.This counter can be compared to Log Bytes Received/Sec. If Log Bytes Received/Sec trends greater than Redone Bytes/Sec for sustained periods of time, then redo latency is building up between the primary and secondary replicas, which suggests that counter Redo Bytes Remaining and Recovery Queue is growing. This could indicate Redo is the bottleneck. To measure Recovery Time, divide Recovery Queue by Redone Bytes / Sec. Note: This counter should be viewed on the Secondary replica</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Database Replica(_Total)\Redo Bytes Remaining</CounterName>
+        <Description>The amount of log in kilobytes remaining to be redone to finish the reverting phase. If Redo Bytes Remaining counter is trending up, The redo process could be a bottleneck.Note: This counter should be viewed on the Secondary replica</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Database Replica(_Total)\Redo blocked/sec</CounterName>
+        <Description>Number of times redo gets blocked in the last second</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Database Replica(*)\Recovery Queue</CounterName>
+        <Description>Amount of log records in the log files of the secondary replica that has not yet been redone.The Recovery Queue monitors the progress of the redo of flushed pages. If Recovery Queue is trending up, the redo process could be a bottleneck. ForAlwaysON, the redo process is single threaded to ensure a consistent read for readable secondaries.Note: This counter should be viewed on the Secondary replica</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Database Replica(*)\Log Bytes Received/sec</CounterName>
+        <Description>Amount of logs received by the availability replica for the databaseNote: This counter should be viewed on the Secondary replica</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Database Replica(_Total)\Log remaining for undo</CounterName>
+        <Description>The amount of log in kilobytes remaining to finish the undo phase.Note: This counter should be viewed on the Secondary replica</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Database Replica(_Total)\Log Send Queue</CounterName>
+        <Description>value is sent to the secondary availability replica from the primary availability replica.Note: Queue size does not include FileStream files that are sent to a secondary.  The log send queue size at any point will give an indication approximately how much log has not been sent in KB. This is the amount of log secondary does not have at the time of failover and the amount of data loss that could be experienced. The log send queue size is also reported in DMV sys.dm_hadr_database_replica_states.log_send_queue_size column column in KB. Note: This counter should be viewed on the Secondary replicaReference:http://technet.microsoft.com/en-us/library/ff877972.aspxhttp://www.sqlskills.com/blogs/joe/answering-questions-with-the-alwayson-dashboard/http://support.microsoft.com/kb/2857849</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Database Replica(*)\Mirrored Write Transactions/sec</CounterName>
+        <Description>This counter is a measure of transactions that are waiting to be hardened to the primary because of Synchronous Availability Mode requiring that they harden at secondary also. When using Asynchronous availability mode this counter is 0. Note: This counter should be viewed on the Primary replica</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Memory Manager\Optimizer Memory (KB)</CounterName>
+        <Description>Total amount of dynamic memory the server is using for query optimization</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Memory Manager\Stolen Server Memory (KB)</CounterName>
+        <Description>Amount of memory the server is currently using for the purposes other than the database pages.  Number of pages used for miscellaneous server purposes (including procedure cache). This counter shows how many pages were taken from the buffer pool to accomodate non-buffer pool needs such as plan cache, procedure cache, the optimizer, workspace memory, etc. This counter should be baselined and can be analyzed by comparing this counter to the amount of buffer pool space and large requests that are hitting the SQL Server instance.Note: DBCC MEMORYSTATUS can also be leveraged to examine the impact of stolen memory to the buffer pool.Note: The lazywriter process is not permitted to flush Stolen buffers out of the buffer pool.Reference:SQL Server, Buffer Manager Objecthttp://technet.microsoft.com/en-us/library/ms189628(v=sql.105).aspxINF: Using DBCC MEMORYSTATUS to Monitor SQL Server Memory Usagehttp://support.microsoft.com/kb/271624</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Memory Manager\Total Server Memory (KB)</CounterName>
+        <Description>Total amount of dynamic memory the server is currently consuming</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Memory Node(*)\Database Node Memory (KB)</CounterName>
+        <Description>Amount of memory the server is using on this node for database pages.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Memory Node(*)\Foreign Node Memory (KB)</CounterName>
+        <Description>Non NUMA-local amount of memory on this node.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Memory Node(*)\Stolen Node Memory (KB)</CounterName>
+        <Description>Amount of memory the server is using on this node for the purposes other than database pages.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Memory Node(*)\Target Node Memory (KB)</CounterName>
+        <Description>Ideal amount of memory for this node.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Memory Node(000)\Total Node Memory (KB)</CounterName>
+        <Description>Total amount of memory the server has committed on this node.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Buffer Node(*)\Remote node page lookups/sec</CounterName>
+        <Description>Number of lookup requests from this node, which were satisfied from other nodes.  Note: It is recommended to set the maximum degree of parallelism MAXDOP tothe number of processors per NUMA node to encourage queries to leverage memory on the local NUMA node though memory can always be used from other NUMA nodes if it is needed. Dynamic Management Views (DMVs) and performance monitor (perfmon) counters can be used to find out the degree local memory and foreign memory is being used. Additionally, it is recommended to leverage the SysInternals tool 'CoreInfo' to find out specifically the processors being used, hyperthreading, and the overall NUMA cost between NUMA nodes. Furthermore, it is recommended to configure MAXDOP correctly and monitor foreign memory use, install the latest hotfixes that would affect NUMA configurations, and ensure the latest firmware is installed for the hardware being used in your environment.ReferencesCoreInfohttp://technet.microsoft.com/en-us/sysinternals/cc835722.aspxRecommendations and guidelines for the "max degree of parallelism" configuration option in SQL Serverhttp://support.microsoft.com/kb/2806535</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Buffer Node(*)\Local node page lookups/sec</CounterName>
+        <Description>Number of lookup requests from this node, which were satisfied from this node. Note: It is recommended to set the maximum degree of parallelism MAXDOP to the number of processors per NUMA node to encourage queries to leverage memory on the local NUMA node though memory can always be used from other NUMA nodes if it is needed. Dynamic Management Views (DMVs) and performance monitor (perfmon) counters can be used to find out the degree local memory and foreign memory is being used. Additionally, it is recommended to leverage the SysInternals tool 'CoreInfo' to find out specifically the processors being used, hyperthreading, and the overall NUMA cost between NUMA nodes. Furthermore, it is recommended to configure MAXDOP correctly and monitor foreign memory use, install the latest hotfixes that would affect NUMA configurations, and ensure the latest firmware is installed for the hardware being used in your environment.ReferencesCoreInfohttp://technet.microsoft.com/en-us/sysinternals/cc835722.aspxRecommendations and guidelines for the "max degree of parallelism" configuration option in SQL Serverhttp://support.microsoft.com/kb/2806535</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Buffer Node(*)\Database pages</CounterName>
+        <Description>Database pages on node.SQL Server:Buffer Nodehttp://technet.microsoft.com/en-us/library/ms345597.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Buffer Manager\Background writer pages/sec</CounterName>
+        <Description>Number of pages flushed to enforce the recovery interval settings.When Indirect Checkpoints is enabled at the database level, you will notice a new background thread in sys.dm_exec_requests with the command token "RECOVERY WRITER". There is a single background writer for the SQL Server instance. The background writer performs aggressive flushing of dirty pages based on LSN order and reduces the redo phase recovery time.The catalog view sys.databases contains a column named target_recovery_time_in_seconds that indicates whether a specific database is using the new Indirect checkpoint algorithm. There is a new performance monitor counter called 'Background writer pages/sec' that exposes the amount of dirty pages processed by the background writer.SQL Server Books Online contains a discussion about Indirect Checkpoints and how it interacts with the recovery interval setting:Database Checkpoints (SQL Server)http://msdn.microsoft.com/en-us/library/ms189573(v=sql.110).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Buffer Manager\Target pages</CounterName>
+        <Description>The ideal number of pages in the Buffer Pool according the maximum memory granted to SQL Server.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Buffer Node(*)\Page life expectancy</CounterName>
+        <Description>Number of seconds a page will stay in the buffer pool without references. This performance monitor counter tells you, on average, how long data pages are staying in the buffer. Any large drops of 30% or more should be investigated. Below 600 should be monitored and very low values near zero are considered a critical state. For monitoring, we are alerting at a warning level at 600 and a critical state of lower than 300 seconds, though getting a baseline is the best approach.When page life expectancy gets too low, this is an indication that SQL Server is doing too many logical reads putting pressure on the buffer pool. It is recommended to correlate page life expectancy with lazy writer activity. When page life expectancy becomes low, then SQL Server will respond by sweeping through the buffer pool using the lazy writer, increasing lazy writer activity. Low page life expectancy may cause more physical reads increasing pressure on disk and slowing down SQL Server responsiveness. The Page life expectancy counteris considered one of the most critical counters for SQL Server. If Page life expectancy becomes low SQL Server will attempt physical reads from disk into the buffer pool to honor requests. Requests from physical disk will take considerably longer causing higher disk costs.Note: NUMA systems will have a CPU and memory grouping per node. If the server is a NUMA environment you should analyze the Buffer Node counters for Page Life Expectancy per node. You can tell a server is a NUMA system by checking the SQL Server error log or by querying sys.dm_os_memory_nodes. A non-NUMA system will have 2 nodes listed, A NUMA system will have additional nodes for each of the hardware NUMA nodes in the system.Threshold:Yellow: Page life expectancy is less than 10 minutes (600 seconds)Red: Page life expectancy is less than 5 minutes (300 seconds)Next Steps:If Buffer Manager\Page life expectancy is low then the Buffer Manager\Lazy Writes /sec will be higher as the Lazy Writer will become active attempting to free the buffer cache as SQL Server will be under memory pressure. Due to the disk impact of the physical reads incurred, the \Physical Disk \Avg. Disk sec/Read counter may also become a bottleneck as SQL Server is reading from disk instead of the buffer pull to honor requests. Look for an increase in SQL Server: Buffer Manager: Checkpoint Pages/sec and SQL Server:Buffer Manager: Lazy Writes/sec performance object counters because SQL Server 2005 / 2008 starts to flush pages out of the buffer pool cache under memory pressure. Run expensive queries through the Database Tuning Advisor (DTA), look for queries with a high number of logical reads and consider tuning and potentially rewriting them, and potentially add additional memory if non-hardware options to not address the issue.Reference:SQL Server, Access Methods Objecthttp://msdn.microsoft.com/en-us/library/ms177426.aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Databases(*)\Active Transactions</CounterName>
+        <Description>Number of active update transactions for the database.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Databases(*)\Backup/Restore Throughput/sec</CounterName>
+        <Description>Read/write throughput for backup/restore of a database.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">:Databases(*)\Bulk Copy Throughput/sec</CounterName>
+        <Description>KiloBytes bulk copied.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:General Statistics\Active Temp Tables</CounterName>
+        <Description>Number of temporary tables/table variables in use</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:General Statistics\Temp Tables Creation Rate</CounterName>
+        <Description>Number of temporary tables/table variables created/sec</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:General Statistics\Temp Tables For Destruction</CounterName>
+        <Description>Number of temporary tables/table variables waiting to be destroyed by the cleanup system thread</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Workload Group Stats(*)\Suboptimal plans/sec</CounterName>
+        <Description>Number of suboptimal query plans generated per second in the workload group.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Workload Group Stats(*)\Active parallel threads</CounterName>
+        <Description>Number of threads used by parallel queries in the workload group. Serial queries and the main thread of parallel queries are not included in this number.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Workload Group Stats(*)\Reduced memory grants/sec</CounterName>
+        <Description>Number of queries per second getting less than ideal amount of memory in the workload group.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Workload Group Stats(*)\Active requests</CounterName>
+        <Description>Number of currently running requests in the workload group.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Transactions\Transactions</CounterName>
+        <Description>The total number of active transactions.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Transactions\Version Store Size (KB)</CounterName>
+        <Description>The size of the version store in KB.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">\ReportServer:Service\Errors Total</CounterName>
+        <Description>The total number of errors that occur during the processing of HTTP requests. These errors include HTTP status codes in the 400s and 500s.Performance Counters for the ReportServer:Service Performance Objecthttp://technet.microsoft.com/en-us/library/cc627471(v=sql.110).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">\ReportServer:Service\Errors/sec</CounterName>
+        <Description>The total number of errors that occur per second during the processing of HTTP requests. These errors include HTTP status codes in the 400s and 500s.Performance Counters for the ReportServer:Service Performance Objecthttp://technet.microsoft.com/en-us/library/cc627471(v=sql.110).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">\ReportServer:Service\Memory Pressure State</CounterName>
+        <Description>A number from 1-5 indicating the current memory state of the server.**1:No pressure**2:Low Pressure**3:Medium Pressure**4:High Pressure**5:Exceeded PressurePerformance Counters for the ReportServer:Service Performance Objecthttp://technet.microsoft.com/en-us/library/cc627471(v=sql.110).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">\ReportServer:Service\Memory Shrink Amount</CounterName>
+        <Description>Number of bytes the server requested to shrink.Performance Counters for the ReportServer:Service Performance Objecthttp://technet.microsoft.com/en-us/library/cc627471(v=sql.110).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Type="Counter">\ReportServer:Service\Memory Shrink Notifications/sec</CounterName>
+        <Description>Number of shrink notifications the server issued in the last second. Indicates how often the server believes it is under memory pressure.Performance Counters for the ReportServer:Service Performance Objecthttp://technet.microsoft.com/en-us/library/cc627471(v=sql.110).aspx</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Availability Replica(*)\Bytes Sent to Transport/sec</CounterName>
+        <Description>Actual number of bytes sent per second over the network to the remote availability replica</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Memory Manager\Connection Memory (KB)</CounterName>
+        <Description>Total amount of dynamic memory the server is using for maintaining connections</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Memory Manager\Database Cache Memory (KB)</CounterName>
+        <Description>Amount of memory the server is currently using for the database cache.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Memory Manager\Free Memory (KB)</CounterName>
+        <Description>Amount of memory the server is currently not using.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Memory Manager\Lock Memory (KB)</CounterName>
+        <Description>Total amount of dynamic memory the server is using for locks</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Memory Manager\SQL Cache Memory (KB)</CounterName>
+        <Description>Total amount of dynamic memory the server is using for the dynamic SQL cache</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:SQL Statistics\Forced Parameterizations/sec</CounterName>
+        <Description>Number of statements parameterized by forced parameterization per second.  If this value is high check to see if Forced Parameterization is turned on at the database level.  Research to ensure that this setting needs to be turned on if it is enabled.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Workload Group Stats(*)\Max request memory grant (kb)</CounterName>
+        <Description>Maximum value of memory grant in kilobytes used by a query in the workload group.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Access Methods\Full Scans/sec</CounterName>
+        <Description>Number of unrestricted full scans. These can either be base table or full index scans.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Access Methods\Page Splits/sec</CounterName>
+        <Description>Number of page splits per second that occur as a result of overflowing index pages.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Access Methods\Probe Scans/sec</CounterName>
+        <Description>Number of probe scans per second that are used to find at most one single qualified row in an index or base table directly.  High values are not alarming here as range scans are typically indicative of effecient Index Seeks.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Access Methods\Range Scans/sec</CounterName>
+        <Description>Number of qualified range scans through indexes per second.  High values are not alarming here as range scans are typically indicative of effecient Index Seeks.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Replication Logreader(*)\Logreader:Delivered Cmds/sec</CounterName>
+        <Description>The number of commands per second delivered to the Distributor.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Replication Logreader(*)\Logreader:Delivered Trans/sec</CounterName>
+        <Description>The number of transactions per second delivered to the Distributor.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Replication Logreader(*)\Logreader:Delivery Latency</CounterName>
+        <Description>The current amount of time, in milliseconds, elapsed from when transactions are applied at the Publisher to when they are delivered to the Distributor.  High values may indicate network issues between the Publisher and Distributor or that the log reader agent needs to be adjusted to keep up with transactional demand.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Access Methods\Skipped Ghost Records/sec</CounterName>
+        <Description>Number of ghosted records per second skipped during scans.  Have values may indicate a high rate of change and deleted records are not cleaned up quickly enough.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Cursor Manager By Type(_Total)\Active Cursors</CounterName>
+        <Description>Total number of active cursors on the SQL Instance.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Wait Statistics(Average wait time (ms))\Lock waits</CounterName>
+        <Description>Average wait time for processes waiting on a lock.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Wait Statistics(Average wait time (ms))\Log buffer waits</CounterName>
+        <Description>Average wait time for processes waiting for log buffer to be available.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Wait Statistics(Average wait time (ms))\Log write waits</CounterName>
+        <Description>Average wait time for processes waiting for log buffer to be written.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Wait Statistics(Average wait time (ms))\Memory grant queue waits</CounterName>
+        <Description>Average wait time for processes waiting for memory grant to become available.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Wait Statistics(Average wait time (ms))\Network IO waits</CounterName>
+        <Description>Average wait time relevant to network IO.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:Wait Statistics(Average wait time (ms))\Non-page latch waits</CounterName>
+        <Description>Average wait time relevant to non-page IO latches.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Wait Statistics(Average wait time (ms))\Page IO latch waits</CounterName>
+        <Description>Average wait time relevant to page IO latches.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:Wait Statistics(Average wait time (ms))\Page latch waits</CounterName>
+        <Description>Average wait time relevant to page latches, not including IO latches.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">:General Statistics\Processes blocked</CounterName>
+        <Description>The number of blocked processes.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">:General Statistics\Transactions</CounterName>
+        <Description>Overall transactions as of a given point in time.</Description>
+      </Counter>
+    </SQLInstanceCounters>
+    <SingleMachineCounters>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter" minWarning="80" maxWarning="85" minCritical="85" maxCritical="100" Orientation="TopBottom">\\*\Processor Information(_Total)\% Processor Time</CounterName>
+        <Description>% Processor Time is the percentage of elapsed time that the processor spends to execute a non-Idle thread. It is calculated by measuring the percentage of time that the processor spends executing the idle thread and then subtracting that value from 100%. (Each processor has an idle thread that consumes cycles when no other threads are ready to run). This counter is the primary indicator of processor activity, and displays the average percentage of busy time observed during the sample interval. It should be noted that the accounting calculation of whether the processor is idle is performed at an internal sampling interval of the system clock (10ms). On todays fast processors, % Processor Time can therefore underestimate the processor utilization as the processor may be spending a lot of time servicing threads between the system clock sampling interval. Workload based timer applications are one example  of applications  which are more likely to be measured inaccurately as timers are signaled just after the sample is taken.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">\\*\Processor(_Total)\% Processor Time</CounterName>
+        <Description>% Processor Time is the percentage of elapsed time that the processor spends to execute a non-Idle thread. It is calculated by measuring the percentage of time that the processor spends executing the idle thread and then subtracting that value from 100%. (Each processor has an idle thread that consumes cycles when no other threads are ready to run). This counter is the primary indicator of processor activity, and displays the average percentage of busy time observed during the sample interval. It should be noted that the accounting calculation of whether the processor is idle is performed at an internal sampling interval of the system clock (10ms). On todays fast processors, % Processor Time can therefore underestimate the processor utilization as the processor may be spending a lot of time servicing threads between the system clock sampling interval. Workload based timer applications are one example  of applications  which are more likely to be measured inaccurately as timers are signaled just after the sample is taken.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Graph="false" Type="Counter">\\*\Memory\Page Faults/sec</CounterName>
+        <Description>Page Faults/sec is the average number of pages faulted per second. It is measured in number of pages faulted per second because only one page is faulted in each fault operation, hence this is also equal to the number of page fault operations. This counter includes both hard faults (those that require disk access) and soft faults (where the faulted page is found elsewhere in physical memory.) Most processors can handle large numbers of soft faults without significant consequence. However, hard faults, which require disk access, can cause significant delays.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Graph="false" Type="Counter">\\*\Memory\Page Reads/sec</CounterName>
+        <Description>Page Reads/sec is the rate at which the disk was read to resolve hard page faults. It shows the number of reads operations, without regard to the number of pages retrieved in each operation. Hard page faults occur when a process references a page in virtual memory that is not in working set or elsewhere in physical memory, and must be retrieved from disk. This counter is a primary indicator of the kinds of faults that cause system-wide delays. It includes read operations to satisfy faults in the file system cache (usually requested by applications) and in non-cached mapped memory files. Compare the value of Memory\\Pages Reads/sec to the value of Memory\\Pages Input/sec to determine the average number of pages read during each operation.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Graph="false" Type="Counter">\\*\Memory\Page Writes/sec</CounterName>
+        <Description>Page Writes/sec is the rate at which pages are written to disk to free up space in physical memory. Pages are written to disk only if they are changed while in physical memory, so they are likely to hold data, not code.  This counter shows write operations, without regard to the number of pages written in each operation.  This counter displays the difference between the values observed in the last two samples, divided by the duration of the sample interval.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">\\*\Memory\Pages/sec</CounterName>
+        <Description>Pages/sec is the rate at which pages are read from or written to disk to resolve hard page faults. This counter is a primary indicator of the kinds of faults that cause system-wide delays.  It is the sum of Memory\\Pages Input/sec and Memory\\Pages Output/sec.  It is counted in numbers of pages, so it can be compared to other counts of pages, such as Memory\\Page Faults/sec, without conversion. It includes pages retrieved to satisfy faults in the file system cache (usually requested by applications) non-cached mapped memory files.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter" minWarning="2500" maxWarning="2000" minCritical="2000" maxCritical="0" Orientation="BottomTop">\\*\Memory\Available MBytes</CounterName>
+        <Description>Available MBytes is the amount of physical memory, in Megabytes, immediately available for allocation to a process or for system use. It is equal to the sum of memory assigned to the standby (cached), free and zero page lists.</Description>
+      </Counter>
+    </SingleMachineCounters>
+    <ProcessCounters>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter">IO Data Bytes/sec</CounterName>
+        <Description>The rate at which the process is reading and writing bytes in I/O operations. This counter counts all I/O activity generated by the process toinclude file, network and device I/Os.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">Working Set</CounterName>
+        <Description>Working Set is the current size, in bytes, of the Working Set of this process. The Working Set is the set of memory pages touched recently by the threads in the process. If free memory in the computer is above a threshold, pages are left in the Working Set of a process even if they are not in use.  When free memory falls below a threshold, pages are trimmed from Working Sets. If they are needed they will then be soft-faulted back into the Working Set before leaving main memory.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter" minWarning="80" maxWarning="85" minCritical="85" maxCritical="" Orientation="TopBottom">% Processor Time</CounterName>
+
+        <Description>% Processor Time is the percentage of elapsed time that all of process threads used the processor to execution instructions. An instruction is the basic unit of execution in a computer, a thread is the object that executes instructions, and a process is the object created when a program is run. Code executed to handle some hardware interrupts and trap conditions are included in this count.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="false" Type="Counter">Page File Bytes</CounterName>
+        <Description>Page File Bytes is the current amount of virtual memory, in bytes, that this process has reserved for use in the paging file(s). Paging files are used to store pages of memory used by the process that are not contained in other files. Paging files are shared by all processes, and the lack of space in paging files can prevent other processes from allocating memory. If there is no paging file, this counter reflects the current amount of virtual memory that the process has reserved for use in physical memory.</Description>
+      </Counter>
+    </ProcessCounters>
+    <LogicalDiskCounters>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter" minWarning=".01" maxWarning=".02" minCritical=".02" maxCritical="" Orientation="TopBottom">Avg. Disk sec/Read</CounterName>
+        <Description>Avg. Disk sec/Read is the average time, in seconds, of a read of data from the disk.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="true" Graph="true" Type="Counter" minWarning=".01" maxWarning=".02" minCritical=".02" maxCritical="" Orientation="TopBottom">Avg. Disk sec/Write</CounterName>
+        <Description>Avg. Disk sec/Write is the average time, in seconds, of a write of data to the disk.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Graph="true" Type="Counter">Avg. Disk Bytes/Transfer</CounterName>
+        <Description>Avg. Disk Bytes/Transfer is the average number of bytes transferred to or from the disk during write or read operations.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Graph="false" Type="Counter">Avg. Disk Queue Length</CounterName>
+        <Description>Avg. Disk Write Queue Length is the average number of write requests that were queued for the selected disk during the sample interval.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Graph="false" Type="Counter">Disk Transfers/sec</CounterName>
+        <Description>Disk Transfers/sec is the rate of read and write operations on the disk.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Graph="true" Type="Counter">% Free Space</CounterName>
+        <Description>% Free Space is the percentage of total usable space on the selected logical disk drive that was free.</Description>
+      </Counter>
+      <Counter>
+        <CounterName Enabled="false" Graph="true" Type="Counter">% Idle Time</CounterName>
+        <Description>% Idle Time reports the percentage of time during the sample interval that the disk was idle.</Description>
+      </Counter>
+    </LogicalDiskCounters>
+  </Counters>
+  <RulesEngine>
+    <VariableAssignments>
+      <Assignment>
+        <VariableName>MemoryGrantsPending</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Memory Manager\Memory Grants Pending" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>BatchRequests</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*sql statistics\batch requests/sec" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>FullScans</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*access methods\full scans/sec" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>BatchRequests</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*sql statistics\batch requests/sec" -and $_.InstanceName -eq $InstanceName}</Expression>
+        }
+      </Assignment>
+      <Assignment>
+        <VariableName>LazyWrites</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*buffer manager\lazy writes/sec" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>PLE</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*buffer manager\page life expectancy" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>FreeListStalls</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*buffer manager\free list stalls/sec" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>PageLookups</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*buffer manager\page lookups/sec" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>PageReads</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*buffer manager\page reads/sec" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>PageWrites</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*buffer manager\page writes/sec" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>Deadlocks</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*locks(_total)\number of deadlocks/sec" -and $_.InstanceName -eq $InstanceName}</Expression>
+        }
+      </Assignment>
+      <Assignment>
+        <VariableName>GrantsPending</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Memory Manager\Memory Grants Pending" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>Compiles</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*SQL Statistics\SQL Compilations/sec" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>ReCompiles</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*SQL Statistics\SQL Re-Compilations/sec" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>IndexSearches</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Access Methods\Index Searches/sec" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>PageSplits</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Access Methods\Page Splits/sec" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>BlockedProcesses</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*General Statistics\Processes blocked" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>DBCacheMemory</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Memory Manager\Database Cache Memory (KB)" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>SQLFreeMemory</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Memory Manager\Free Memory (KB)" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>SQLLockMemory</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Memory Manager\Lock Memory (KB)" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>SQLCacheMemory</VariableName>
+        #
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Memory Manager\SQL Cache Memory (KB)" -and $_.InstanceName -eq $InstanceName}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>FullProcessorTime</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Processor Information(*)\% Processor Time"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>MemoryPageFaults</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Memory\Page Faults/sec"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>MemoryPageReads</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Memory\Page Reads/sec"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>MemoryPageWrites</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Memory\Page Writes/sec"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>MemoryPagesPerSec</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Memory\Pages/sec"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>MemoryAvailableMBytes</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Memory\Available MBytes"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>PLEThreshold</VariableName>
+        <Expression>1000</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>FullScanBatchRatio</VariableName>
+        <Expression>try{[decimal]$FullScans.Maximum/[decimal]$BatchRequests.Maximum}catch{0}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>DiskSecPerRead</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Avg. Disk sec/Read"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>DiskSecPerWrite</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Avg. Disk sec/Read"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>DiskFreeSpace</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*% Free Space"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>IdleTimePercent</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*% Idle Time"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>CompilesToRecompiles</VariableName>
+        <Expression>try{[decimal]$Compiles.Maximum/[decimal]$Recompiles.Maximum}catch{0}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>FreeListStalls</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*buffer manager\free list stalls/sec"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>LockEscalations</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*access methods\table lock escalations/sec"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>LockAvgWaitTime</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*Locks(_Total)\Average Wait Time (ms)"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>LogReaderLatencyMS</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*logreader:delivery latency"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>PageIOLatchWaitMS</VariableName>
+        <Expression>$CounterObjectList| Where-Object {$_.CounterName -like "*wait statistics(average wait time (ms))\page io latch waits"}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>CompilesPerBatchRequest</VariableName>
+        <Expression>try{[decimal]$BatchRequests.Maximum/[decimal]$Compiles.Maximum}catch{0}</Expression>
+      </Assignment>
+      <Assignment>
+        <VariableName>PageLookupsPerBatchRequest</VariableName>
+        <Expression>try{[decimal]$PageLookups.Maximum/[decimal]$BatchRequests.Maximum}catch{0}</Expression>
+      </Assignment>
+    </VariableAssignments>
+    <Rules>
+      <Rule>
+        <Name>GrantsPendingGreaterThan4</Name>
+        <Expression>[decimal]$MemoryGrantsPending.Maximum -gt 4</Expression>
+        <Description>There were at least 4 pending memory grants at one time during this capture.</Description>
+        <DescriptionExpression>"The maximum pending memory grants was: " + $MemoryGrantsPending.Maximum</DescriptionExpression>
+      </Rule>
+      <Rule>
+        <Name>LowPLE</Name>
+        <Expression>([decimal]$PLE.Average -lt $PLEThreshold) -or ([decimal]$PLE.Minimum -lt $PLEThreshold)</Expression>
+        <Description>There are instances of very low Page Life Expectancy.</Description>
+      </Rule>
+      <Rule>
+        <Name>LargeDipInPLE</Name>
+        <Expression>if([decimal]$PLE.Average-eq 0){0}else{(([decimal]$PLE.Minimum/[decimal]$PLE.Average)*100) -lt 40}</Expression>
+        <Description>There are extreme dips in Page Life Expectancy.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighAvailableMBytes</Name>
+        <Expression>$MemoryAvailableMBytes.Average -gt 5000</Expression>
+        <Description>There is a high amount of Available memory on the server not being used.</Description>
+      </Rule>
+      <Rule>
+        <Name>LowAvailableMBytes</Name>
+        <Expression>$MemoryAvailableMBytes.Average -lt 2000</Expression>
+        <Description>There is a low amount of Available memory on the server.  Investigate processes that are using high amounts of memory.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighAveragePendingGrants</Name>
+        <Expression>[decimal]$GrantsPending.Average -gt 1</Expression>
+        <Description>There is a high number of pending memory grants.  There are likely queries that need to be tuned to fix this.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighPendingMemoryGrants</Name>
+        <Expression>[decimal]$GrantsPending.Maximum -gt 4</Expression>
+        <Description>There was a spike in pending memory grants.</Description>
+      </Rule>
+      <Rule>
+        <Name>BlockedProcesses</Name>
+        <Expression>[decimal]$BlockedProcesses.Average -gt 5</Expression>
+        <Description>There was blocking during a majority of this capture.</Description>
+      </Rule>
+      <Rule>
+        <Name>DeadlocksOccurred</Name>
+        <Expression>[decimal]$Deadlocks.Maximum -gt 1</Expression>
+        <Description>Deadlocks occurred during this capture.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighLazyWrites</Name>
+        <Expression>[decimal]$LazyWrites.Average -ge 1</Expression>
+        <Description>The average Lazy Write values for this capture is high.  There may be memory pressure.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighFullScanToBatchRatio</Name>
+        <Expression>[decimal]$FullScanBatchRatio -ge 2</Expression>
+        <Description>The ratio of Full Scans to Batch Requests is high.  There may be unnecessary table scans occurring.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighFreeListStallsCheck</Name>
+        <Expression>[decimal]$FreeListStalls.Maximum -ge 2</Expression>
+        <Description>There has been a high number of attempts to free pages in memory.  You may be experiencing memory pressure.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighDiskSecPerRead</Name>
+        <Expression>$DiskSecPerRead.Maximum -ge .02</Expression>
+        <Description>High Disk Read Latency</Description>
+        <DescriptionExpression>"on drives: " + ($DiskSecPerRead |where{$_.Maximum -ge .02}).DriveName -join ", "</DescriptionExpression>
+      </Rule>
+      <Rule>
+        <Name>HighDiskSecPerWrite</Name>
+        <Expression>$DiskSecPerWrite.Maximum -ge .02</Expression>
+        <Description>High Disk Write Latency</Description>
+        <DescriptionExpression>"on drives: " + ($DiskSecPerWrite |where{$_.Maximum -ge .02}).DriveName -join ", "</DescriptionExpression>
+      </Rule>
+      <Rule>
+        <Name>LowDiskFreeSpace</Name>
+        <Expression>$DiskFreeSpace.Minimum -le 30</Expression>
+        <Description>Low disk free space</Description>
+        <DescriptionExpression>"on drives: " + ($DiskFreeSpace |where{$_.Minimum -le 30}).DriveName -join ", "</DescriptionExpression>
+      </Rule>
+      <Rule>
+        <Name>HighDiskIdleTime</Name>
+        <Expression>$IdleTimePercent.Maximum -le 70</Expression>
+        <Description>High disk usage</Description>
+        <DescriptionExpression>"on drives: " + ($IdleTimePercent |where{$_.Maximum -le 70}).DriveName -join ", "</DescriptionExpression>
+      </Rule>
+      <Rule>
+        <Name>HighLockEscalations</Name>
+        <Expression>$LockEscalations.Maximum -ge 1</Expression>
+        <Description>High lock escalations during capture.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighFreeListStalls</Name>
+        <Expression>$FreeListStalls.Maximum -ge 1</Expression>
+        <Description>High free list stalls during capture.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighCompilesToRecompiles</Name>
+        <Expression>$CompilesToRecompiles -ge 10</Expression>
+        <Description>High compiles to recompiles during capture.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighAvgLockWaitTime</Name>
+        <Expression>$LockAvgWaitTime.Maximum -le 100</Expression>
+        <Description>High average lock wait time.</Description>
+      </Rule>
+      <Rule>
+        <Name>VeryHighLogReaderLatency</Name>
+        <Expression>$LogReaderLatencyMS.Maximum -gt 10000</Expression>
+        <Description>Very high log reader latency.  Check connections between the Publisher and Subscriber.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighPageIOLatchWaitMS</Name>
+        <Expression>$PageIOLatchWaitMS.Average -gt 100</Expression>
+        <Description>Very high page io latch wait values.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighCompilesPerBatchRequest</Name>
+        <Expression>$CompilesPerBatchRequest -gt 10</Expression>
+        <Description>The ratio of compiles to batch requests is high.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighLookupsPerBatchRequest</Name>
+        <Expression>$PageLookupsPerBatchRequest -gt 100</Expression>
+        <Description>The ratio of Page Lookups to Batch Requests is high.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighPageReads</Name>
+        <Expression>$PageReads.Average -gt 120</Expression>
+        <Description>The Page Reads value is high.</Description>
+      </Rule>
+      <Rule>
+        <Name>HighPageWrites</Name>
+        <Expression>$PageWrites.Average -gt 120</Expression>
+        <Description>The Page Writes value is high.</Description>
+      </Rule>
+    </Rules>
+  </RulesEngine>
+  <Relog>
+    <CounterList Category="SQLPerformance" Enabled="true">
+      <Counter>\*:Buffer Manager\Page life expectancy</Counter>
+      <Counter>\*:Buffer Manager\Lazy writes/sec</Counter>
+      <Counter>\*:Buffer Manager\Page lookups/sec</Counter>
+      <Counter>\*:Buffer Manager\Page reads/sec</Counter>
+      <Counter>\*:Buffer Manager\Page writes/sec</Counter>
+      <Counter>\*:Buffer Manager\Checkpoint Pages/sec</Counter>
+      <Counter>\*:Buffer Manager\Buffer Cache Hit Ratio</Counter>
+      <Counter>\*:SQL Statistics\Batch Requests/sec</Counter>
+      <Counter>\*:SQL Statistics\SQL Compilations/sec</Counter>
+      <Counter>\*:Access Methods\Full Scans/sec</Counter>
+      <Counter>\*:Access Methods\Index Searches/sec</Counter>
+      <Counter>\*:Access Methods\Probe Scans/sec</Counter>
+      <Counter>\*:Access Methods\Range Scans/sec</Counter>
+      <Counter>\*:General Statistics\Active temp tables</Counter>
+      <Counter>\*:General Statistics\Logins/sec</Counter>
+      <Counter>\*:Wait Statistics(Average wait time (ms))\Log buffer waits</Counter>
+      <Counter>\*:Wait Statistics(Average wait time (ms))\Log write waits</Counter>
+      <Counter>\*:Wait Statistics(Average wait time (ms))\Network IO waits</Counter>
+      <Counter>\*:Wait Statistics(Average wait time (ms))\Page IO latch waits</Counter>
+      <Counter>\Memory\Available MBytes</Counter>
+      <Counter>\Memory\Pages/sec</Counter>
+      <Counter>\LogicalDisk(*)\Avg. Disk sec/Read</Counter>
+      <Counter>\LogicalDisk(*)\Avg. Disk sec/Write</Counter>
+      <Counter>\Processor(_total)\% Processor Time</Counter>
+      <Counter>\*:Memory Manager\Stolen Server Memory (KB)</Counter>
+      <Counter>\*:Memory Manager\Total Server Memory (KB)</Counter>
+      <Counter>\*:Memory Manager\Memory Grants Pending</Counter>
+      <Counter>\*:Memory Manager\Granted Workspace Memory (KB)</Counter>
+      <Counter>\*:Memory Manager\Free Memory (KB)</Counter>
+      <Counter>\*:Memory Manager\Optimizer Memory (KB)</Counter>
+      <Counter>\*:Memory Manager\Connection Memory (KB)</Counter>
+      <Counter>\*:Memory Manager\Database Cache Memory (KB)</Counter>
+      <Counter>\*:Memory Manager\Memory Grants Outstanding</Counter>
+      <Counter>\*:Memory Manager\SQL Cache Memory (KB)</Counter>
+      <Counter>\*:Memory Manager\Lock Memory (KB)</Counter>
+      <Counter>\*:Memory Manager\Maximum Workspace Memory (KB)</Counter>
+      <Counter>\*:Memory Manager\Target Server Memory (KB)</Counter>
+      <Counter>\*:Locks(_Total)\Number of Deadlocks/sec</Counter>
+      <Counter>\*:Locks(_Total)\Average Wait Time (ms)</Counter>
+    </CounterList>
+  </Relog>
+  <OutputReportProcedures>
+    <Procedure>
+      <Name>report_SystemSummary</Name>
+      <Heading>System Summary</Heading>
+      <Description>The following table is an overview of the system software and hardware configuration.</Description>
+    </Procedure>
+    <Procedure>
+      <Name>GetBatchResponseBaseline</Name>
+      <Heading>Batch Response Baseline</Heading>
+      <Description>The following table represents the summary of all of the SQL batches that have completed since the SQL Server process was last restarted.</Description>
+    </Procedure>
+    <Procedure>
+      <Name>GetWaits</Name>
+      <Heading>Overall System Waits</Heading>
+      <Description>The following table is an aggregated overview of the system resource waits since the last time SQL Server was restarted or the DMV sys.dm_os_wait_stats was cleared.</Description>
+    </Procedure>
+    <Procedure>
+      <Name>GetWaitsForCapture</Name>
+      <Heading>Wait Statistics During Capture</Heading>
+      <Description>The following table is an aggregated overview of the system resource waits that occurred during the PSSDiag capture on the system.</Description>
+    </Procedure>
+  </OutputReportProcedures>
+  <WaitDescriptions>
+    <Wait>
+      <Name>CXPACKET</Name>
+      <Description><![CDATA[This wait type simply means there are parallel plans executing. When a parallel scan runs, there will be at least one CXPACKET wait (for the controller thread), and possibly others if there is a skewed distribution of work.  This wait isn’t necessarily a bad thing – it just means that parallelism is happening in your queries.  If you’re not expecting this level of parallelism then you can consider tuning the most expensive queries on the system – such as adjusting the code or adding indexes to the underlying tables.  If that is not an option then you can consider adjusting the cost threshold for parallelism or lowering the degree of parallelism.
+
+Parallel plans are sometimes caused by inaccurate cardinality estimates.  When cardinality estimates are incorrect, the parallel threads doing the query work are given uneven amounts of work to do. The typical case is where one thread is given all the work, or way more work than the other threads. This means that those threads that finish processing their rows (if they were even given any) before the slowest thread register a CXPACKET from the moment they finish until the slowest thread finishes. This problem can lead to a seeming explosion in CXPACKET waits occurring and is commonly called skewed parallelism, because the distribution of work between the parallel threads is skewed, not even.]]>
+      </Description>
+    </Wait>
+    <Wait>
+      <Name>PAGEIOLATCH_</Name>
+      <Description><![CDATA[This wait type is when a thread is waiting for the read of a data file page from disk to complete, and the thread is going to read (not modify) the page structure once it is in memory (SH = SHare mode).
+(Books Online description: “Occurs when a task is waiting on a latch for a buffer that is in an I/O request. The latch request is in Shared mode. Long waits may indicate problems with the disk subsystem.”)
+
+The knee-jerk reaction to this wait type is that it must be the I/O subsystem that has a problem, and even the Books Online description mentions this. It’s true that long waits for I/Os indicate the I/O subsystem is overloaded, but it’s more likely that the problem is in SQL Server than with the I/O subsystem. You need to think about *why* SQL Server is doing so many reads.
+Paul Randal’s article (http://sqlperformance.com/2014/06/io-subsystem/knee-jerk-waits-pageiolatch-sh )to better understand identifying the query that’s doing the reads and then figuring out which table is being read from and why that data isn’t already in memory.]]>
+      </Description>
+    </Wait>
+    <Wait>
+      <Name>ASYNC_NETWORK_IO</Name>
+      <Description>
+  <![CDATA[This wait type is where SQL Server has sent some data to a client through TDS and is waiting for the client to acknowledge that is has consumed the data, and can also show up with transaction replication if the Log Reader Agent job is running slowly for some reason.
+This wait type is never indicative of a problem with SQL Server, and the majority of the time it is nothing to do with the network either (it’s common to see advice stating that this is always a network issue). A simple test for network issues is to test the ping time between the SQL Server and the client/application/web server, and if the ping time is close to the average wait time, then the wait is because of the network (which may just be the normal network latency, not necessarily a problem).
+There is usually nothing that you can do with your SQL Server code that will affect this wait type. There are a few causes of this on the client side, including:
+•	The client code is doing what is known as RBAR (Row-By-Agonizing-Row), where only one row at a time is pulled from the results and processed, instead of caching all the results and then immediately replying to SQL Server and proceeding to process the cached rows.
+•	The client code is running on a server that has performance issues, and so the client code is running slowly.
+•	The client code is running on a VM on a host that is configured incorrectly or overloaded such that the VM doesn’t get to run properly (i.e. slowly or co-scheduling issues).
+On the SQL Server side, the only possibility I know of for causing this is using MARS (Multiple Active Result Sets) with large result sets.
+•	Look for incorrect NIC settings (e.g. TCP Chimney Offload enabled) with the help of your network/system administrator. Whether some settings should be enabled or not depends on the underlying OS version. See this post and this post for some more details.]]>
+      </Description>
+    </Wait>
+    <Wait>
+      <Name>WRITELOG</Name>
+      <Description><![CDATA[This wait type is when a thread is waiting for a log block to be written to disk by an asynchronous I/O. A log block is written to disk when:
+•	A transaction commits (unless it is set to be delayed durable in SQL Server 2014 and above)
+•	The log block reaches its maximum size of 60Kb
+•	A data file page is being written to disk and write-ahead logging forces the current log block to disk (as the log block contains the most recent log record describing a change to the data file page being written out)
+
+There are many things you can do to reduce WRITELOG waits and wait times, including:
+•	Reduce the amount of transaction log being generated
+•	Reduce how often log flushes are occurring
+•	Reduce/remove log flushing overheard from synchronous HA technologies
+  o	With availability groups, the remote log copy incurs a HADR_SYNC_COMMIT wait
+•	Upgrade to 2012 or higher to raise the max-outstanding-log-writes from 32 to 112
+•	Put the transaction log on the fastest portion of the I/O subsystem
+•	Consider implementing delayed durability (in 2014+) or in-memory OLTP/Hekaton]]>
+      </Description>
+    </Wait>
+    <Wait>
+      <Name>OLEDB</Name>
+      <Description><![CDATA[This wait type is when a thread is waiting for data from an OLE DB Provider, which is used internally for things like DBCC CHECK* commands and DMVs, and externally for things like linked server communication and some SSIS packages.
+
+Most third-party performance monitoring tools run a high number of DMV queries, which can result in the OLEDB wait type becoming more prevalent as a top wait on the server.
+
+If the OLEDB waits on your server are just a few milliseconds or less on average, and there are millions or billions of them, AND you are using a 3rd party monitoring tool then these waits are just part of your baseline. Lots of small waits could also be DBCC CHECK*commands. If the waits are many tens or hundreds of milliseconds or more, then it’s more likely to be something like an SSIS package or a linked server. If you have linked servers and you can correlate the long OLEDB waits with queries to one of them, do performance troubleshooting on the linked server.]]>
+      </Description>
+    </Wait>
+    <Wait>
+      <Name>LCK_M_</Name>
+      <Description><![CDATA[This wait type occurs when a worker thread is waiting to acquire an Intent Exclusive lock on a resource and there is at least one other lock in an incompatible mode granted on the resource to a different thread.
+Here is some general guidance for troubleshooting locking and blocking issues:
+
+•	You can use the blocked process report to get more detailed information on queries that are waiting for locks for a specified threshold.  This is an sp_configure setting which will fire an event that you can consume via Extended Events or a server side trace (Profiler).
+•	Look to see what is at the head of the blocking chain (i.e. the thread that’s holding the lock that’s blocking everyone) using a script (plenty of them available online – I don’t have a preferred one). What is that thread waiting for? Fixing that wait may help unravel the blocking. For example, a thread may be holding locks and committing a transaction, but there’s a synchronous mirror with a slow I/O subsystem so the mirror log write takes a long time, making the transaction commit take longer, and the locks take longer to be released, causing blocking.
+•	Look for lock escalation, where an UPDATE transaction has escalated to a table X lock, causing widespread blocking.
+•	Look for index operations causing table locks, and consider using online index operations (or if already using them, consider the WAIT_AT_LOW_PRIORITY feature in 2014+).
+•	Look for code that specifies a TABLOCK (causes a table Shared lock) or TABLOCKX (causes a table Exclusive lock) hint.
+•	Look for application code that will cause locks to be acquired and then waits for user input or fails to commit a transaction for a long time.
+•	Consider creating nonclustered indexes to remove row locks from the underlying heap/clustered index.
+•	Consider using snapshot isolation or read committed snapshot isolation to allow readers to not take S/IS locks and reduce blocking.
+•	Check the correct isolation level is being used as REPEATABLE_READ and SERIALIZABLE will hold S/IS locks until the end of a transaction.
+•	Check for accidental use of the SERIALIZABLE isolation level, from using distributed transactions or incorrectly scoped .Net TransactionScope objects.
+Specific guidance for LCK_M_IX waits:
+•	For an Intent Exclusive lock, the resource could be a page, partition, or table.
+•	Common blockers are a table X (Exclusive) lock from lock escalation occurring, or a SCH_M (Schema Modification) lock from an index build/rebuild.
+•	If the blocker is holding a table S lock, investigation why the blocking thread has that lock (e.g. use of TABLOCK hint or lock escalation in a restrictive isolation level).]]>
+      </Description>
+    </Wait>
+    <Wait>
+      <Name>SOS_SCHEDULER_YIELD</Name>
+      <Description><![CDATA[This wait type is when a executing a task isn’t able to complete all of its work and it voluntarily yields control of the CPU to another thread, moving to the bottom of the Runnable Queue in its scheduler. The thread is then in a RUNNABLE state, as it is not waiting for a resource (other than the CPU again).
+
+Some of the most common cause of SOS_SCHEDULER_YIELD waits is queries doing scans of pages that are in memory and aren’t changing, so there’s no contention for page access and the scanning thread can run until it exhausts its thread quantum. This could be because a query plan is unexpectedly doing a table scan, or it could be a normal part of the workload.
+There is a great article by Paul Randal on understanding and troubleshooting SOS_SCHEDULER_YIELD waits (http://sqlperformance.com/2014/02/sql-performance/knee-jerk-waits-sos-scheduler-yield ) that explains more about thread scheduling and quantum exhaustion, plus troubleshooting. Basically this involves identifying the query that’s producing the SOS_SCHEDULER_YIELD waits and making sure the query plan looks correct (e.g. is there a missing nonclustered index causing an in-memory table scan?).
+
+Note that queries incurring SOS_SCHEDULER_YIELD waits don’t show up in sys.dm_os_waiting_tasks so you need a script that looks at sys.dm_exec_requests instead.
+When the thread quantum expires, the thread *must* yield the processor. It has no knowledge of other threads on that scheduler and there is always a context switch when the thread goes to the bottom of the runnable queue, even if it’s the only thread on the scheduler. The thread cannot decide to just not yield. It’s the context switch that forces the registration of a wait type within SQLOS. If the context switch does not occur (because the thread fails to check whether the quantum has expired), that’s a non-yielding scheduler and you’ll see message 17883 in the error log.
+One more thing to consider is whether your workload is running on a VM that’s experiencing delays because of the host being oversubscribed. This can elevate the number of SOS_SCHEDULER_YIELD waits.]]>
+      </Description>
+    </Wait>
+    <Wait>
+      <Name>PAGELATCH_EX</Name>
+      <Description><![CDATA[This wait type is when a thread is waiting for access to a data file page in memory (usually a page from a table/index) so that it can modify the page structure (EX = EXclusive mode). One important point to note here is that these pages are already in memory, and this is not a wait related to a transfer from disk to memory.
+
+Some of the more common causes of PAGELATCH_XX contention are:
+•	Allocation bitmap contention in tempdb (PAGELATCH_UP for multiple threads trying to change the same bitmap), and under extreme loads, in user databases
+•	Table/index insert hotspot (PAGELATCH_EX for threads inserting onto the same page and possibly PAGELATCH_SH for threads reading from that page)
+•	Excessive page splits from random inserts (PAGELATCH_EX for threads trying to insert/update rows on a page and possibly PAGELATCH_SH for threads reading from that page)
+Paul Randal has an article (http://sqlperformance.com/2015/10/sql-performance/knee-jerk-wait-statistics-pagelatch ) that covers the first two cases above, basically identifying the cause of the contention from the page resource involved and troubleshooting further from there. Troubleshooting the third case involves figuring out which index is undergoing the page splits and then usually implementing a fill factor and regular index maintenance.]]>
+      </Description>
+    </Wait>
+  </WaitDescriptions>
+  <ReportStyles>
+    <Font name ="Normal">
+      <FontColor>-16777216</FontColor><!--name="wdColorAutomatic">-->
+      <FontName>Calibri</FontName>
+      <FontSize>11</FontSize>
+    </Font>
+    <Font name ="DocumentTitle">
+      <FontColor>12212746</FontColor><!--name="wdColorSkyBlue">-->
+      <FontName>Calibri</FontName>
+      <FontSize>28</FontSize>
+    </Font>
+    <Font name ="DocumentSubtitle">
+      <FontColor>12212746</FontColor><!--name="wdColorSkyBlue">-->
+      <FontName>Calibri</FontName>
+      <FontSize>26</FontSize>
+    </Font>
+    <Font name ="DocumentCoverText">
+      <FontColor>-16777216</FontColor><!--name="wdColorAutomatic">-->
+      <FontName>Calibri</FontName>
+      <FontSize>12</FontSize>
+    </Font>
+
+    <Font name ="TOCTitle">
+      <FontColor>9527094</FontColor>
+      <FontName>Calibri</FontName>
+      <FontSize>28</FontSize>
+	<FontBold>1</FontBold>
+    </Font>
+    <Font name ="Header">
+      <FontName>Calibri</FontName>
+      <FontSize>12</FontSize>
+    </Font>
+    <Font name ="Footer">
+      <FontName>Calibri</FontName>
+      <FontSize>11</FontSize>
+    </Font>
+    <Font name ="SummaryLevel1">
+      <Style>Heading 1</Style>
+      <FontName>Calibri</FontName>
+      <FontSize>28</FontSize>
+    </Font>
+    <Font name ="SummaryLevel2">
+      <Style>Heading 2</Style>
+      <FontName>Calibri</FontName>
+      <FontSize>20</FontSize>
+    </Font>
+    <Font name ="SummaryLevel3">
+      <Style>Heading 3</Style>
+      <FontName>Calibri</FontName>
+      <FontSize>18</FontSize>
+    </Font>
+    <Font name ="Annotation">
+      <FontName>Calibri</FontName>
+      <FontSize>12</FontSize>
+      <FontBold>0</FontBold>
+    </Font>
+    <Font name ="TableStyle">
+      <Style>Medium Shading 1 - Accent 1</Style>
+    </Font>
+    <Font name ="TableShadingStyle">
+      <BackgroundPatternColor>65535</BackgroundPatternColor>
+    </Font>
+    <Font name="TableTitle">
+      <FontColor>-16777216</FontColor>
+      <!--name="wdColorAutomatic">-->
+      <Bold>1</Bold>
+      <FontName>Calibri</FontName>
+      <FontSize>14</FontSize>
+    </Font>
+    <Font name="TableSubtitle">
+      <FontColor>-16777216</FontColor>
+      <!--name="wdColorAutomatic">-->
+      <Bold>1</Bold>
+      <FontName>Calibri</FontName>
+      <FontSize>11</FontSize>
+    </Font>
+    <Font name="TableText">
+      <FontColor>-16777216</FontColor>
+      <!--name="wdColorAutomatic">-->
+      <Bold>0</Bold>
+      <FontName>Calibri</FontName>
+      <FontSize>11</FontSize>
+    </Font>
+  </ReportStyles>
+  <ReportFixedTexts>
+    <Value name ="LegalAdvice">
+      <![CDATA[The information contained in this document represents the current view of Microsoft Corporation on the issues discussed as of the date of publication. Because Microsoft must respond to changing market conditions, it should not be interpreted to be a commitment on the part of Microsoft, and Microsoft cannot guarantee the accuracy of any information presented after the date of publication.
+MICROSOFT MAKES NO WARRANTIES, EXPRESS, IMPLIED OR STATUTORY, AS TO THE INFORMATION IN THIS DOCUMENT.
+Complying with all applicable copyright laws is the responsibility of the user. Without limiting the rights under copyright, no part of this document may be reproduced, stored in or introduced into a retrieval system, or transmitted in any form or by any means (electronic, mechanical, photocopying, recording, or otherwise), or for any purpose, without the express written permission of Microsoft Corporation. 
+Microsoft may have patents, patent applications, trademarks, copyrights, or other intellectual property rights covering subject matter in this document. Except as expressly provided in any written license agreement from Microsoft, the furnishing of this document does not give you any license to these patents, trademarks, copyrights, or other intellectual property. 
+The descriptions of other companies’ products in this document, if any, are provided only as a convenience to you. Any such references should not be considered an endorsement or support by Microsoft. Microsoft cannot guarantee their accuracy, and the products may change over time. Also, the descriptions are intended as brief highlights to aid understanding, rather than as thorough coverage. For authoritative descriptions of these products, please consult their respective manufacturers.
+© 2019 Microsoft Corporation. All rights reserved. Any use or distribution of these materials without express authorization of Microsoft Corp. is strictly prohibited.
+Microsoft and Windows are either registered trademarks of Microsoft Corporation in the United States and/or other countries.
+The names of actual companies and products mentioned herein may be the trademarks of their respective owners.]]>
+    </Value>
+    <Value name ="SummaryText1">
+      <![CDATA[ requested Microsoft SQL Premier Field Engineering to conduct a thorough performance review. This clinic provides the knowledge and skills to effectively use tools and techniques from the field, and will cover areas such as:]]>
+    </Value>
+    <Value name ="SummaryList1">
+      <![CDATA[SQL Server engine
+Examining baselining for performance
+Identifying costly queries
+Understanding how wait statistics can be used to find potential impending bottlenecks
+Examining disk, memory and CPU bottlenecks
+Stress testing SQL Server
+Setting up alerts through Windows Management Instrumentation (WMI) / Database Mail, and knowing how to test them employing SQL Server best practices]]>
+    </Value>
+    <Value name ="TOCTitle">
+      <![CDATA[Report Contents]]>
+    </Value>
+    <Value name ="SummaryTitle">
+      <![CDATA[Overall Summary]]>
+    </Value>
+    <Value name ="SummaryMemory">
+      <![CDATA[Memory]]>
+    </Value>
+    <Value name ="SummaryCPU">
+      <![CDATA[CPU]]>
+    </Value>
+    <Value name ="SummaryDisk">
+      <![CDATA[Disk]]>
+    </Value>
+    <Value name ="SummaryConcurrency">
+      <![CDATA[Concurrency]]>
+    </Value>
+    <Value name ="SummaryText2">
+      <![CDATA[Performance Counters, Traces and/or Extended Events and DMVs were collected against the following SQL instance:]]>
+    </Value>
+    <Value name ="SummaryText2SQLDB">
+      <![CDATA[Performance metrics were collected from the following Azure SQL Database:]]>
+    </Value>    
+    <Value name ="SummaryText2SQLMI">
+      <![CDATA[Performance metrics were collected from the following Azure SQL Managed Instance:]]>
+    </Value>      
+    <Value name ="SummaryText2SQLMI">
+      <![CDATA[Performance metrics were collected from the following Azure SQL Hyperscale Database:]]>
+    </Value>        
+    <Value name ="SummaryText3">
+      <![CDATA[This report presents the heavy hitter issues and the troubleshooting executed, the findings grouped by categories and each issue graded by severity for this environment. One single document report will be delivered for each environment covered during Performance Tuning and Optimization Clinic. 
+The issues can be prioritized for remediation in the order of their severity.]]>
+    </Value>
+    <Value name ="Header1">
+      <![CDATA[                   Performance Tuning and Optimization Clinic: Summary Report]]>
+    </Value>
+    <Value name ="Footer1">
+      <![CDATA[Microsoft Proprietary Information                                                                             	                      Page ]]>
+    </Value>
+    <Value name ="DocumentTitle">
+      <![CDATA[Performance Tuning and Optimization Clinic]]>
+    </Value>
+    <Value name ="PreparedBy">
+      <![CDATA[Prepared by SQL Server Premier Field Engineer: ]]>
+    </Value>
+    <Value name ="TAMName">
+      <![CDATA[Technical Account Manager: ]]>
+    </Value>
+    <Value name ="DateOfCreation">
+      <![CDATA[Date of Creation: ]]>
+    </Value>
+    <Value name ="EmptyWordTable">
+      <![CDATA[There is no collected data to show. ]]>
+    </Value>
+  </ReportFixedTexts>
+</root>

@@ -1,0 +1,2 @@
+--DBCCMemoryStatus
+DBCC MEMORYSTATUS

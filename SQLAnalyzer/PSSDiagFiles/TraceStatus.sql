@@ -1,0 +1,2 @@
+print '-- TraceStatus'
+dbcc tracestatus
